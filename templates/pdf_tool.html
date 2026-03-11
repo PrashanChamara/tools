@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF Editing Tool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      background-color: #f8f9fa;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+      background-color: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+    header a {
+      text-decoration: none;
+    }
+    header img {
+      height: 50px;
+    }
+    .container {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 20px auto;
+    }
+    .box {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      background-color: #fff;
+      text-align: center;
+      min-height: 300px;
+    }
+    .box h2 {
+      margin-bottom: 15px;
+    }
+    .btn-row {
+      margin-top: 15px;
+    }
+    footer {
+      background-color: #2f2f2f;
+      color: #fff;
+      text-align: center;
+      padding: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="{{ url_for('home') }}">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
+    </a>
+  </header>
+  <div class="container">
+    <h1 class="text-center my-3">PDF Editing Tool</h1>
+    <form id="pdf-form" action="{{ url_for('pdf_tool') }}" method="post" enctype="multipart/form-data">
+      <div class="row">
+        <!-- Left Box: Upload PDF Files -->
+        <div class="col-md-6 mb-3">
+          <div class="box">
+            <h2>Upload PDF File(s)</h2>
+            <input type="file" name="pdf_files" id="pdf-input" accept="application/pdf" class="form-control-file" multiple required>
+            <div id="file-list" style="margin-top:10px;"></div>
+          </div>
+        </div>
+        <!-- Right Box: Operation Options -->
+        <div class="col-md-6 mb-3">
+          <div class="box">
+            <h2>Operation Options</h2>
+            <div class="form-group">
+              <label for="operation">Operation:</label>
+              <select name="operation" id="operation" class="form-control" required>
+                <option value="merge">Merge PDF</option>
+                <option value="split">Split PDF</option>
+                <option value="arrange">Arrange PDF</option>
+                <option value="pdf_to_jpg">PDF to JPG</option>
+                <option value="pdf_to_excel">PDF to Excel</option>
+                <option value="pdf_to_word">PDF to Word</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="size_option">File Size Adjustment:</label>
+              <select name="size_option" id="size_option" class="form-control">
+                <option value="">None</option>
+                <option value="reduce">Reduce Size</option>
+                <option value="enlarge">Enlarge Size</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="rotate_option">Rotate PDF (degrees, multiple of 90):</label>
+              <input type="number" name="rotate_option" id="rotate_option" class="form-control" placeholder="0">
+            </div>
+            <div class="btn-row">
+              <button type="submit" class="btn btn-primary">Process PDF</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+  <footer>
+    tux-talk @ 2025
+  </footer>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Show list of uploaded file names
+    document.getElementById('pdf-input').addEventListener('change', function() {
+      const fileListDiv = document.getElementById('file-list');
+      fileListDiv.innerHTML = '';
+      for (let i = 0; i < this.files.length; i++) {
+        const para = document.createElement('p');
+        para.textContent = this.files[i].name;
+        fileListDiv.appendChild(para);
+      }
+    });
+  </script>
+</body>
+</html>

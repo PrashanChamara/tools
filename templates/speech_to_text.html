@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Speech to Text</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      background-color: #f8f9fa;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+      background-color: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+    header img {
+      height: 50px;
+    }
+    .container {
+      flex: 1;
+      max-width: 600px;
+      width: 100%;
+      margin: 20px auto;
+    }
+    #transcription {
+      width: 100%;
+      height: 200px;
+      padding: 15px;
+      font-size: 16px;
+      margin-top: 20px;
+      resize: vertical;
+    }
+    .btn {
+      margin: 10px 0;
+    }
+    footer {
+      background-color: #2f2f2f;
+      color: #fff;
+      text-align: center;
+      padding: 20px 0;
+    }
+  </style>
+</head>
+<body>
+    <header>
+        <a href="{{ url_for('home') }}">
+          <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
+        </a>
+      </header>
+
+  <div class="container">
+    <h1 class="text-center my-3">Speech to Text</h1>
+    
+    <div class="text-center">
+      <!-- Language Selector -->
+      <div class="form-group">
+        <label for="language-select">Choose Language:</label>
+        <select id="language-select" class="form-control w-50 mx-auto">
+          <option value="en-US">English (US)</option>
+          <option value="si-LK">Sinhala (LK)</option>
+        </select>
+      </div>
+      <!-- Start and Stop Buttons -->
+      <button id="start-btn" class="btn btn-primary">Start Talking</button>
+      <button id="stop-btn" class="btn btn-danger" disabled>Stop</button>
+    </div>
+    
+    <!-- Editable Transcription Area -->
+    <textarea id="transcription" class="form-control" placeholder="Your transcription will appear here..."></textarea>
+    
+    <!-- Download Button -->
+    <div class="text-center">
+      <button id="download-btn" class="btn btn-success">Download as Word File</button>
+    </div>
+  </div>
+  
+  <footer>
+    tux-talk @ 2025
+  </footer>
+
+  <!-- Speech Recognition Script -->
+  <script>
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Sorry, your browser does not support the Speech Recognition API. Please use Google Chrome.");
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = document.getElementById('language-select').value;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let finalTranscript = '';
+
+    recognition.onresult = function(event) {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+      document.getElementById('transcription').value = finalTranscript + interimTranscript;
+    };
+
+    recognition.onerror = function(event) {
+      console.error("Speech recognition error:", event.error);
+    };
+
+    document.getElementById('start-btn').addEventListener('click', function() {
+      finalTranscript = document.getElementById('transcription').value;
+      recognition.start();
+      this.disabled = true;
+      document.getElementById('stop-btn').disabled = false;
+    });
+
+    document.getElementById('stop-btn').addEventListener('click', function() {
+      recognition.stop();
+      document.getElementById('start-btn').disabled = false;
+      this.disabled = true;
+    });
+
+    document.getElementById('language-select').addEventListener('change', function() {
+      recognition.lang = this.value;
+    });
+
+    document.getElementById('download-btn').addEventListener('click', function() {
+      const text = document.getElementById('transcription').value;
+      const formData = new FormData();
+      formData.append('text', text);
+
+      fetch('/download', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "transcription.docx";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+    });
+  </script>
+</body>
+</html>

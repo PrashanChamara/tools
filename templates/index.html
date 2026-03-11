@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>tux-talk-tools</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+  <meta name="theme-color" content="#2f2f2f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      background-color: #f8f9fa;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+      background-color: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+    header a {
+      text-decoration: none;
+    }
+    header img {
+      height: 50px;
+    }
+    .main-content {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    footer {
+      background-color: #2f2f2f;
+      color: #fff;
+      text-align: center;
+      padding: 20px 0;
+    }
+    .card-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+    .card {
+      width: 280px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.15);
+      border: none;
+      border-radius: 8px;
+    }
+    .card img {
+      height: 120px;
+      width: auto;
+      margin: 0 auto;
+      display: block;
+      padding: 20px;
+    }
+    .card-title {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .card-text {
+      text-align: center;
+      margin: 10px;
+    }
+    .btn-service {
+      display: block;
+      margin: 0 auto 20px auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="{{ url_for('home') }}">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
+    </a>
+  </header>
+
+  <div class="main-content">
+    <div class="card-container">
+      <div class="card">
+        <img src="{{ url_for('static', filename='icons/textspeech.png') }}" alt="Speech to Text Icon">
+        <div class="card-body">
+          <h5 class="card-title">Speech to Text</h5>
+          <p class="card-text">
+            Convert your voice into written text in real time.
+          </p>
+          <a href="{{ url_for('speech_to_text') }}" class="btn btn-primary btn-service">Try It</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <img src="{{ url_for('static', filename='icons/removebg.png') }}" alt="Background Remover Icon">
+        <div class="card-body">
+          <h5 class="card-title">Background Remover</h5>
+          <p class="card-text">
+            Upload any image and remove its background automatically.
+          </p>
+          <a href="{{ url_for('remove_background') }}" class="btn btn-primary btn-service">Try It</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <img src="{{ url_for('static', filename='icons/sketching.png') }}" alt="Sketching Tool Icon">
+        <div class="card-body">
+          <h5 class="card-title">Sketching</h5>
+          <p class="card-text">
+            Transform your images into pencil sketches with a single click.
+          </p>
+          <a href="{{ url_for('sketch') }}" class="btn btn-primary btn-service">Try It</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <img src="{{ url_for('static', filename='icons/excelmerge.png') }}" alt="Excel Merge Tool Icon">
+        <div class="card-body">
+          <h5 class="card-title">Excel Merge Tool</h5>
+          <p class="card-text">
+            Merge two Excel files based on a common column and select extra columns to copy.
+          </p>
+          <a href="{{ url_for('excel_tool') }}" class="btn btn-primary btn-service">Try It</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <img src="{{ url_for('static', filename='icons/pdfedit.png') }}" alt="PDF Editing Tool Icon">
+        <div class="card-body">
+          <h5 class="card-title">PDF Editing Tool</h5>
+          <p class="card-text">
+            Merge, split, arrange, convert, and even adjust file size or rotate your PDFs.
+          </p>
+          <a href="{{ url_for('pdf_tool') }}" class="btn btn-primary btn-service">Try It</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <img src="{{ url_for('static', filename='icons/colorcorrect.png') }}" alt="Color Correction Icon">
+        <div class="card-body">
+          <h5 class="card-title">Color Correction</h5>
+          <p class="card-text">
+            Automatically correct the colors of your photos for day or night time.
+          </p>
+          <a href="{{ url_for('color_correction') }}" class="btn btn-primary btn-service">Try It</a>
+        </div>
+      </div>
+      
+      <div class="card">
+        <img src="{{ url_for('static', filename='icons/upscale.png') }}" alt="Image Upscaling Icon">
+        <div class="card-body">
+          <h5 class="card-title">Image Upscaling</h5>
+          <p class="card-text">
+            Increase the resolution of your images using AI for a clearer result.
+          </p>
+          <a href="{{ url_for('image_upscaling') }}" class="btn btn-primary btn-service">Try It</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    tux-talk @ 2025
+  </footer>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}")
+        .then(reg => console.log("Service Worker Registered", reg))
+        .catch(err => console.log("Service Worker Registration Failed", err));
+    }
+  </script>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

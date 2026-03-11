@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketching Tool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      background-color: #f8f9fa;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+      background-color: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+    header a {
+      text-decoration: none;
+    }
+    header img {
+      height: 50px;
+    }
+    .container {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 20px auto;
+    }
+    .box {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      background-color: #fff;
+      text-align: center;
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .box h2 {
+      margin-bottom: 15px;
+    }
+    #original-image, #processed-image {
+      max-width: 100%;
+      height: auto;
+      display: none; /* Hidden until we have something to show */
+      margin-bottom: 15px;
+    }
+    footer {
+      background-color: #2f2f2f;
+      color: #fff;
+      text-align: center;
+      padding: 20px 0;
+    }
+    .btn-row {
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="{{ url_for('home') }}">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
+    </a>
+  </header>
+
+  <div class="container">
+    <h1 class="text-center my-3">Sketching Tool</h1>
+    <div class="row">
+      <!-- Original Image Box -->
+      <div class="col-md-6 mb-3">
+        <div class="box">
+          <h2>Original Image</h2>
+          <img id="original-image" alt="Original" />
+          <input type="file" id="image-input" accept="image/*" class="form-control-file" />
+        </div>
+      </div>
+
+      <!-- Processed Image Box -->
+      <div class="col-md-6 mb-3">
+        <div class="box">
+          <h2>Sketched Image</h2>
+          <img id="processed-image" alt="Sketch" />
+          <div class="btn-row">
+            <button id="sketch-btn" class="btn btn-primary">Convert to Sketch</button>
+            <button id="download-btn" class="btn btn-success" style="display: none;">Download</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    tux-talk @ 2025
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const fileInput = document.getElementById('image-input');
+    const originalImg = document.getElementById('original-image');
+    const processedImg = document.getElementById('processed-image');
+    const sketchBtn = document.getElementById('sketch-btn');
+    const downloadBtn = document.getElementById('download-btn');
+
+    let uploadedFile = null;
+
+    // Preview the selected image in the first box
+    fileInput.addEventListener('change', function() {
+      if (!fileInput.files.length) return;
+      uploadedFile = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        originalImg.src = e.target.result;
+        originalImg.style.display = 'block';
+      };
+      reader.readAsDataURL(uploadedFile);
+
+      // Clear the processed image if we upload a new file
+      processedImg.src = '';
+      processedImg.style.display = 'none';
+      downloadBtn.style.display = 'none';
+    });
+
+    // Convert to Sketch
+    sketchBtn.addEventListener('click', function() {
+      if (!uploadedFile) {
+        alert("Please select an image first.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('image', uploadedFile);
+
+      fetch('/sketch_image', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.blob())
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        processedImg.src = url;
+        processedImg.style.display = 'block';
+        // Show download button
+        downloadBtn.style.display = 'inline-block';
+        downloadBtn.onclick = function() {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = "sketch.png";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        };
+      })
+      .catch(err => {
+        alert("Error converting image: " + err);
+        console.error(err);
+      });
+    });
+  </script>
+</body>
+</html>

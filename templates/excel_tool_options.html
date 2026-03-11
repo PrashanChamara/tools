@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Excel Merge Options</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <style>
+    html, body { margin: 0; padding: 0; min-height: 100vh; }
+    body { display: flex; flex-direction: column; background-color: #f8f9fa; }
+    header { display: flex; align-items: center; padding: 10px 15px; background-color: #fff; border-bottom: 1px solid #ddd; }
+    header a { text-decoration: none; }
+    header img { height: 50px; }
+    .container { flex: 1; max-width: 600px; width: 100%; margin: 20px auto; }
+    footer { background-color: #2f2f2f; color: #fff; text-align: center; padding: 20px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="{{ url_for('home') }}">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
+    </a>
+  </header>
+  <div class="container">
+    <h1 class="text-center my-3">Excel Merge Tool Options</h1>
+    <form action="{{ url_for('process_excel') }}" method="post">
+      <div class="form-group">
+        <label for="common_col">Select Common Column:</label>
+        <select name="common_col" id="common_col" class="form-control" required>
+          {% for col in common_cols %}
+            <option value="{{ col }}">{{ col }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Select Copy-From File:</label><br>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="copy_from" id="copy_from_A" value="A" required>
+          <label class="form-check-label" for="copy_from_A">File A</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="copy_from" id="copy_from_B" value="B" required>
+          <label class="form-check-label" for="copy_from_B">File B</label>
+        </div>
+      </div>
+      <div class="form-group" id="copy-columns-A" style="display: none;">
+        <label>Select Columns to Copy from File A:</label><br>
+        {% for col in cols_a %}
+          {% if col not in common_cols %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="selected_cols" value="{{ col }}" id="a_{{ loop.index }}">
+              <label class="form-check-label" for="a_{{ loop.index }}">{{ col }}</label>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <div class="form-group" id="copy-columns-B" style="display: none;">
+        <label>Select Columns to Copy from File B:</label><br>
+        {% for col in cols_b %}
+          {% if col not in common_cols %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="selected_cols" value="{{ col }}" id="b_{{ loop.index }}">
+              <label class="form-check-label" for="b_{{ loop.index }}">{{ col }}</label>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <!-- Hidden fields to pass file data -->
+      <input type="hidden" name="file_a_b64" value="{{ file_a_b64 }}">
+      <input type="hidden" name="file_b_b64" value="{{ file_b_b64 }}">
+      <button type="submit" class="btn btn-primary">Process</button>
+    </form>
+  </div>
+  <footer>
+    tux-talk @ 2025
+  </footer>
+  <script>
+    // Show/hide checkboxes based on which radio button is selected
+    document.querySelectorAll('input[name="copy_from"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        if (this.value === 'A') {
+          document.getElementById('copy-columns-A').style.display = 'block';
+          document.getElementById('copy-columns-B').style.display = 'none';
+        } else {
+          document.getElementById('copy-columns-A').style.display = 'none';
+          document.getElementById('copy-columns-B').style.display = 'block';
+        }
+      });
+    });
+  </script>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

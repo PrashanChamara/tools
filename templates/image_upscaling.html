@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Upscaling Tool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      background-color: #f8f9fa;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+      background-color: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+    header a {
+      text-decoration: none;
+    }
+    header img {
+      height: 50px;
+    }
+    .container {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 20px auto;
+    }
+    .box {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      background-color: #fff;
+      text-align: center;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .box h2 {
+      margin-bottom: 15px;
+    }
+    #original-image, #processed-image {
+      max-width: 100%;
+      height: auto;
+      display: none;
+      margin-bottom: 15px;
+    }
+    footer {
+      background-color: #2f2f2f;
+      color: #fff;
+      text-align: center;
+      padding: 20px 0;
+    }
+    .btn-row {
+      margin-top: 15px;
+    }
+    #loader {
+        border: 8px solid #f3f3f3; /* Light grey */
+        border-top: 8px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 2s linear infinite;
+        display: none; /* Hidden by default */
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="{{ url_for('home') }}">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
+    </a>
+  </header>
+
+  <div class="container">
+    <h1 class="text-center my-3">Image Upscaling Tool</h1>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <div class="box">
+          <h2>Original Image</h2>
+          <img id="original-image" alt="Original" />
+          <input type="file" id="image-input" accept="image/*" class="form-control-file" />
+        </div>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <div class="box">
+          <h2>Upscaled Image (4x)</h2>
+          <div id="loader"></div>
+          <img id="processed-image" alt="Upscaled" />
+          <div class="btn-row">
+            <button id="upscale-btn" class="btn btn-primary">Upscale Image</button>
+            <button id="download-btn" class="btn btn-success" style="display: none;">Download</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    tux-talk @ 2025
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const fileInput = document.getElementById('image-input');
+    const originalImg = document.getElementById('original-image');
+    const processedImg = document.getElementById('processed-image');
+    const upscaleBtn = document.getElementById('upscale-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const loader = document.getElementById('loader');
+
+    let uploadedFile = null;
+
+    fileInput.addEventListener('change', function() {
+      if (!fileInput.files.length) return;
+      uploadedFile = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        originalImg.src = e.target.result;
+        originalImg.style.display = 'block';
+      };
+      reader.readAsDataURL(uploadedFile);
+
+      processedImg.src = '';
+      processedImg.style.display = 'none';
+      downloadBtn.style.display = 'none';
+      loader.style.display = 'none';
+    });
+
+    upscaleBtn.addEventListener('click', function() {
+      if (!uploadedFile) {
+        alert("Please select an image first.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('image', uploadedFile);
+
+      loader.style.display = 'block';
+      processedImg.style.display = 'none';
+      downloadBtn.style.display = 'none';
+
+      fetch('/process_upscaling', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        // === UPDATED: Check for specific error codes ===
+        if (response.status === 413) { // Payload Too Large
+            return response.text().then(text => { throw new Error(text) });
+        }
+        if (!response.ok) {
+            throw new Error('An error occurred during the upscaling process.');
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        processedImg.src = url;
+        loader.style.display = 'none';
+        processedImg.style.display = 'block';
+        
+        downloadBtn.style.display = 'inline-block';
+        downloadBtn.onclick = function() {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = "upscaled_image.png";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        };
+      })
+      .catch(err => {
+        // Display the specific error message from the server
+        alert("Error: " + err.message);
+        loader.style.display = 'none';
+        console.error(err);
+      });
+    });
+  </script>
+</body>
+</html>
