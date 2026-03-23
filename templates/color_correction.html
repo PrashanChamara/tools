@@ -1,189 +1,203 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Image Color Correction</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+{% extends "base.html" %}
+{% block title %}Color Correction{% endblock %}
+{% set breadcrumb_tool = "Color Correction" %}
+{% set breadcrumb_icon = "🎨" %}
 
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+{% block head %}
+<style>
+  .studio-layout { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-      background-color: #f8f9fa;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      padding: 10px 15px;
-      background-color: #fff;
-      border-bottom: 1px solid #ddd;
-    }
-    header a {
-      text-decoration: none;
-    }
-    header img {
-      height: 50px;
-    }
-    .container {
-      flex: 1;
-      max-width: 1200px;
-      width: 100%;
-      margin: 20px auto;
-    }
-    .box {
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 15px;
-      background-color: #fff;
-      text-align: center;
-      min-height: 400px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    .box h2 {
-      margin-bottom: 15px;
-    }
-    #original-image, #processed-image {
-      max-width: 100%;
-      height: auto;
-      display: none;
-      margin-bottom: 15px;
-    }
-    footer {
-      background-color: #2f2f2f;
-      color: #fff;
-      text-align: center;
-      padding: 20px 0;
-    }
-    .btn-row, .options-row {
-      margin-top: 15px;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <a href="{{ url_for('home') }}">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
-    </a>
-  </header>
+  /* Tabs */
+  .tab-bar { display: flex; border-bottom: 1.5px solid var(--border); margin-bottom: 16px; }
+  .tab-btn { padding: 10px 18px; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1.5px; transition: all 0.15s; }
+  .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
 
-  <div class="container">
-    <h1 class="text-center my-3">Automatic Color Correction</h1>
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <div class="box">
-          <h2>Original Image</h2>
-          <img id="original-image" alt="Original" />
-          <input type="file" id="image-input" accept="image/*" class="form-control-file" />
+  /* Sliders */
+  .slider-group { margin-bottom: 10px; }
+  .slider-row { display: flex; align-items: center; gap: 8px; }
+  .slider-label { width: 90px; font-size: 12px; color: var(--text-body); flex-shrink: 0; }
+  .slider-row input[type="range"] { flex: 1; }
+  .slider-val { width: 36px; text-align: right; font-size: 11px; font-weight: 600; color: var(--primary); font-variant-numeric: tabular-nums; }
+  .slider-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-faint); margin: 14px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+  /* Presets */
+  .presets-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .preset-btn { padding: 5px 12px; border-radius: var(--radius-full); font-size: 11px; font-weight: 600; border: 1.5px solid var(--border); background: var(--bg-input); color: var(--text-body); cursor: pointer; transition: all 0.15s; }
+  .preset-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-bg); }
+  .preset-btn.active { border-color: var(--primary); background: var(--primary-bg); color: var(--primary); }
+
+  /* Curves */
+  #curves-canvas-wrap { position: relative; margin-bottom: 12px; background: #1a1a2e; border-radius: var(--radius-md); overflow: hidden; }
+  #curves-canvas { display: block; width: 100%; cursor: crosshair; }
+  .channel-btns { display: flex; gap: 6px; margin-bottom: 10px; }
+  .ch-btn { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1.5px solid var(--border); cursor: pointer; background: var(--bg-input); transition: all 0.15s; }
+  .ch-btn.active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+  .ch-btn.ch-r.active { background: #dc2626; border-color: #dc2626; }
+  .ch-btn.ch-g.active { background: #16a34a; border-color: #16a34a; }
+  .ch-btn.ch-b.active { background: #2563eb; border-color: #2563eb; }
+
+  /* Preview */
+  .preview-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .preview-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .preview-pane-inner { text-align: center; }
+  .preview-pane-inner .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); margin-bottom: 6px; }
+  .preview-pane-inner img { max-width: 100%; max-height: 380px; object-fit: contain; border-radius: 8px; border: 1.5px solid var(--border); background: #f8f9fc; }
+  .empty-preview { min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-faint); gap: 8px; background: var(--bg-input); border-radius: var(--radius-lg); border: 1.5px solid var(--border); }
+  .preview-spinner { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100px; gap: 8px; }
+
+  @media (max-width: 1024px) { .studio-layout { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:6px;">🎨 Color Correction — Studio</h2>
+<p class="text-muted" style="margin-bottom:24px;">Professional photo editing with exposure, curves, highlights, shadows, and more.</p>
+
+<div class="studio-layout">
+
+  <!-- LEFT: Controls panel -->
+  <div>
+    <!-- Upload -->
+    <div class="card" style="margin-bottom:16px;" id="upload-card">
+      <div class="card-header"><h4>Upload Image</h4></div>
+      <div class="card-body">
+        <label class="upload-zone" id="upload-zone" for="image-input" style="min-height:100px;">
+          <div class="upload-icon" style="font-size:24px;">🎨</div>
+          <div class="upload-title" style="font-size:13px;">Click or drag image here</div>
+          <div class="upload-sub">JPG, PNG, WEBP</div>
+          <input type="file" id="image-input" accept="image/*">
+        </label>
+        <div id="uploaded-info" style="display:none;margin-top:8px;font-size:12px;color:var(--text-muted);display:flex;justify-content:space-between;"></div>
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="card" style="margin-bottom:16px;" id="controls-card" style="display:none;">
+      <div class="card-body" style="padding:14px 16px;">
+        <div class="form-label" style="margin-bottom:8px;">Quick Presets</div>
+        <div class="presets-row" id="presets-row">
+          <button class="preset-btn" onclick="applyPreset('day')">☀️ Day</button>
+          <button class="preset-btn" onclick="applyPreset('night')">🌙 Night</button>
+          <button class="preset-btn" onclick="applyPreset('vivid')">✨ Vivid</button>
+          <button class="preset-btn" onclick="applyPreset('matte')">🫧 Matte</button>
+          <button class="preset-btn" onclick="applyPreset('bw')">⬛ B&amp;W</button>
+          <button class="preset-btn" onclick="applyPreset('portrait')">🧑 Portrait</button>
+          <button class="preset-btn" onclick="applyPreset('reset')">↺ Reset</button>
         </div>
       </div>
+    </div>
 
-      <div class="col-md-6 mb-3">
-        <div class="box">
-          <h2>Corrected Image</h2>
-          <img id="processed-image" alt="Processed" />
-          <div class="options-row">
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="correction-mode" id="mode-day" value="day" checked>
-              <label class="form-check-label" for="mode-day">Day Time</label>
+    <div class="card" id="adj-card" style="display:none;">
+      <div class="card-body" style="padding:14px 16px;">
+
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab('adjustments',this)">Adjustments</button>
+          <button class="tab-btn" onclick="switchTab('curves',this)">Curves</button>
+        </div>
+
+        <!-- Adjustments tab -->
+        <div class="tab-panel active" id="tab-adjustments">
+          <div class="slider-section-title">Exposure & Tone</div>
+          <div class="slider-group" data-key="exposure">
+            <div class="slider-row"><span class="slider-label">Exposure</span><input type="range" min="-200" max="200" value="0" step="1" oninput="onSlider(this)"><span class="slider-val">0</span></div>
+          </div>
+          <div class="slider-group" data-key="contrast">
+            <div class="slider-row"><span class="slider-label">Contrast</span><input type="range" min="-100" max="100" value="0" oninput="onSlider(this)"><span class="slider-val">0</span></div>
+          </div>
+          <div class="slider-group" data-key="highlights">
+            <div class="slider-row"><span class="slider-label">Highlights</span><input type="range" min="-100" max="100" value="0" oninput="onSlider(this)"><span class="slider-val">0</span></div>
+          </div>
+          <div class="slider-group" data-key="shadows">
+            <div class="slider-row"><span class="slider-label">Shadows</span><input type="range" min="-100" max="100" value="0" oninput="onSlider(this)"><span class="slider-val">0</span></div>
+          </div>
+          <div class="slider-group" data-key="whites">
+            <div class="slider-row"><span class="slider-label">Whites</span><input type="range" min="-100" max="100" value="0" oninput="onSlider(this)"><span class="slider-val">0</span></div>
+          </div>
+          <div class="slider-group" data-key="blacks">
+            <div class="slider-row"><span class="slider-label">Blacks</span><input type="range" min="-100" max="100" value="0" oninput="onSlider(this)"><span class="slider-val">0</span></div>
+          </div>
+
+          <div class="slider-section-title">Colour & Detail</div>
+          <div class="slider-group" data-key="clarity">
+            <div class="slider-row"><span class="slider-label">Clarity</span><input type="range" min="0" max="100" value="0" oninput="onSlider(this)"><span class="slider-val">0</span></div>
+          </div>
+          <div class="slider-group" data-key="vibrance">
+            <div class="slider-row"><span class="slider-label">Vibrance</span><input type="range" min="-100" max="100" value="0" oninput="onSlider(this)"><span class="slider-val">0</span></div>
+          </div>
+          <div class="slider-group" data-key="saturation">
+            <div class="slider-row"><span class="slider-label">Saturation</span><input type="range" min="-100" max="100" value="0" oninput="onSlider(this)"><span class="slider-val">0</span></div>
+          </div>
+
+          <div class="slider-section-title">White Balance</div>
+          <div class="slider-group" data-key="temperature">
+            <div class="slider-row"><span class="slider-label">Temperature</span><input type="range" min="-100" max="100" value="0" oninput="onSlider(this)"><span class="slider-val">0</span></div>
+          </div>
+          <div class="slider-group" data-key="tint">
+            <div class="slider-row"><span class="slider-label">Tint</span><input type="range" min="-100" max="100" value="0" oninput="onSlider(this)"><span class="slider-val">0</span></div>
+          </div>
+        </div>
+
+        <!-- Curves tab -->
+        <div class="tab-panel" id="tab-curves">
+          <div class="channel-btns">
+            <button class="ch-btn active" onclick="switchChannel('rgb',this)">RGB</button>
+            <button class="ch-btn ch-r" onclick="switchChannel('r',this)">Red</button>
+            <button class="ch-btn ch-g" onclick="switchChannel('g',this)">Green</button>
+            <button class="ch-btn ch-b" onclick="switchChannel('b',this)">Blue</button>
+          </div>
+          <div id="curves-canvas-wrap">
+            <canvas id="curves-canvas" width="328" height="240"></canvas>
+          </div>
+          <p style="font-size:11px;color:var(--text-faint);">Click to add point · Double-click to remove · Drag to adjust</p>
+          <button class="btn btn-ghost btn-sm" onclick="resetCurves()" style="margin-top:8px;">↺ Reset Curves</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Preview -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h4>Preview</h4>
+        <div id="preview-status" style="font-size:12px;color:var(--text-faint);">Upload an image to begin</div>
+      </div>
+      <div class="card-body">
+        <div id="empty-preview" class="empty-preview">
+          <span style="font-size:40px;opacity:0.3;">🎨</span>
+          <p>Upload an image on the left to start editing</p>
+        </div>
+        <div id="preview-area" style="display:none;">
+          <div class="preview-panels">
+            <div class="preview-pane-inner">
+              <div class="lbl">Original</div>
+              <img id="orig-preview" src="" alt="Original">
             </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="correction-mode" id="mode-night" value="night">
-              <label class="form-check-label" for="mode-night">Night Time</label>
+            <div class="preview-pane-inner">
+              <div class="lbl">Corrected</div>
+              <div class="preview-spinner" id="preview-spinner">
+                <div class="spinner"></div>
+                <small class="text-muted">Updating preview...</small>
+              </div>
+              <img id="corrected-preview" src="" alt="Corrected" style="display:none;">
             </div>
           </div>
-          <div class="btn-row">
-            <button id="correct-btn" class="btn btn-primary">Correct Colors</button>
-            <button id="download-btn" class="btn btn-success" style="display: none;">Download</button>
+          <div style="display:flex;gap:10px;margin-top:16px;">
+            <button id="download-btn" class="btn btn-primary btn-lg">⬇ Download Full Resolution</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('image-input').click()">📁 Change Image</button>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <footer>
-    tux-talk @ 2025
-  </footer>
+</div>
+{% endblock %}
 
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    const fileInput = document.getElementById('image-input');
-    const originalImg = document.getElementById('original-image');
-    const processedImg = document.getElementById('processed-image');
-    const correctBtn = document.getElementById('correct-btn');
-    const downloadBtn = document.getElementById('download-btn');
-
-    let uploadedFile = null;
-
-    fileInput.addEventListener('change', function() {
-      if (!fileInput.files.length) return;
-      uploadedFile = fileInput.files[0];
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        originalImg.src = e.target.result;
-        originalImg.style.display = 'block';
-      };
-      reader.readAsDataURL(uploadedFile);
-
-      processedImg.src = '';
-      processedImg.style.display = 'none';
-      downloadBtn.style.display = 'none';
-    });
-
-    correctBtn.addEventListener('click', function() {
-      if (!uploadedFile) {
-        alert("Please select an image first.");
-        return;
-      }
-
-      const mode = document.querySelector('input[name="correction-mode"]:checked').value;
-      const formData = new FormData();
-      formData.append('image', uploadedFile);
-      formData.append('mode', mode);
-
-      // Add a loading indicator
-      processedImg.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"; // 1x1 transparent GIF
-      processedImg.style.display = 'block';
-      
-      fetch('/process_color_correction', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.blob();
-      })
-      .then(blob => {
-        const url = URL.createObjectURL(blob);
-        processedImg.src = url;
-        downloadBtn.style.display = 'inline-block';
-        downloadBtn.onclick = function() {
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = "color_corrected.png";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        };
-      })
-      .catch(err => {
-        alert("Error correcting image: " + err);
-        processedImg.style.display = 'none';
-        console.error(err);
-      });
-    });
-  </script>
-</body>
-</html>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/color-curves.js') }}"></script>
+<script src="{{ url_for('static', filename='js/color-preview.js') }}"></script>
+{% endblock %}

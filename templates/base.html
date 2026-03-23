@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}tux-talk{% endblock %} — tux-talk</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="icon" href="{{ url_for('static', filename='logo.png') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="app-nav">
+    <a href="/" class="app-logo">
+      <div class="logo-mark">⚡</div>
+      tux-talk
+    </a>
+
+    <div class="nav-pills">
+      {% if breadcrumb_tool %}
+        <div class="breadcrumb">
+          <a href="/">Tools</a>
+          <span class="sep">›</span>
+          <span class="current">{{ breadcrumb_icon }} {{ breadcrumb_tool }}</span>
+        </div>
+      {% else %}
+        <a href="/"       class="nav-pill {% if active_nav == 'tools'    %}active{% endif %}">Tools</a>
+        <a href="#"       class="nav-pill {% if active_nav == 'settings' %}active{% endif %}">Settings</a>
+      {% endif %}
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-search">🔍 Search tools...</div>
+      <div class="avatar">T</div>
+    </div>
+  </nav>
+
+  <!-- Page content -->
+  <main class="page-body">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    tux-talk &copy; 2026 &mdash; Your everyday AI-powered toolkit
+  </footer>
+
+  <!-- PWA service worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/service-worker.js').catch(() => {});
+    }
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

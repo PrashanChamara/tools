@@ -1,132 +1,215 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>PDF Editing Tool</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-      background-color: #f8f9fa;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      padding: 10px 15px;
-      background-color: #fff;
-      border-bottom: 1px solid #ddd;
-    }
-    header a {
-      text-decoration: none;
-    }
-    header img {
-      height: 50px;
-    }
-    .container {
-      flex: 1;
-      max-width: 1200px;
-      width: 100%;
-      margin: 20px auto;
-    }
-    .box {
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 15px;
-      background-color: #fff;
-      text-align: center;
-      min-height: 300px;
-    }
-    .box h2 {
-      margin-bottom: 15px;
-    }
-    .btn-row {
-      margin-top: 15px;
-    }
-    footer {
-      background-color: #2f2f2f;
-      color: #fff;
-      text-align: center;
-      padding: 20px 0;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <a href="{{ url_for('home') }}">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
-    </a>
-  </header>
-  <div class="container">
-    <h1 class="text-center my-3">PDF Editing Tool</h1>
-    <form id="pdf-form" action="{{ url_for('pdf_tool') }}" method="post" enctype="multipart/form-data">
-      <div class="row">
-        <!-- Left Box: Upload PDF Files -->
-        <div class="col-md-6 mb-3">
-          <div class="box">
-            <h2>Upload PDF File(s)</h2>
-            <input type="file" name="pdf_files" id="pdf-input" accept="application/pdf" class="form-control-file" multiple required>
-            <div id="file-list" style="margin-top:10px;"></div>
-          </div>
-        </div>
-        <!-- Right Box: Operation Options -->
-        <div class="col-md-6 mb-3">
-          <div class="box">
-            <h2>Operation Options</h2>
-            <div class="form-group">
-              <label for="operation">Operation:</label>
-              <select name="operation" id="operation" class="form-control" required>
-                <option value="merge">Merge PDF</option>
-                <option value="split">Split PDF</option>
-                <option value="arrange">Arrange PDF</option>
-                <option value="pdf_to_jpg">PDF to JPG</option>
-                <option value="pdf_to_excel">PDF to Excel</option>
-                <option value="pdf_to_word">PDF to Word</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="size_option">File Size Adjustment:</label>
-              <select name="size_option" id="size_option" class="form-control">
-                <option value="">None</option>
-                <option value="reduce">Reduce Size</option>
-                <option value="enlarge">Enlarge Size</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="rotate_option">Rotate PDF (degrees, multiple of 90):</label>
-              <input type="number" name="rotate_option" id="rotate_option" class="form-control" placeholder="0">
-            </div>
-            <div class="btn-row">
-              <button type="submit" class="btn btn-primary">Process PDF</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </form>
+{% extends "base.html" %}
+{% block title %}PDF Tools{% endblock %}
+{% set breadcrumb_tool = "PDF Tools" %}
+{% set breadcrumb_icon = "📄" %}
+
+{% block head %}
+<style>
+  .ops-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+  .op-card {
+    background: var(--bg-card); border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg); padding: 18px; cursor: pointer;
+    transition: all 0.15s; text-align: center;
+  }
+  .op-card:hover { border-color: var(--primary-border); box-shadow: var(--shadow-3); }
+  .op-card.selected { border-color: var(--primary); background: var(--primary-bg); }
+  .op-card .op-icon { font-size: 28px; margin-bottom: 8px; }
+  .op-card .op-name { font-size: 13px; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
+  .op-card .op-desc { font-size: 11px; color: var(--text-muted); }
+  .process-area { display: none; }
+  .process-area.active { display: block; }
+  .result-area { display: none; margin-top: 16px; }
+  .processing-state { display: none; flex-direction: column; align-items: center; gap: 10px; padding: 32px; }
+  @media (max-width: 768px) { .ops-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:6px;">📄 PDF Tools</h2>
+<p class="text-muted" style="margin-bottom:24px;">Merge, split, rotate, convert PDFs. Select an operation below.</p>
+
+<!-- Operation selector -->
+<div class="ops-grid" id="ops-grid">
+  <div class="op-card selected" onclick="selectOp(this,'merge')">
+    <div class="op-icon">🔗</div>
+    <div class="op-name">Merge PDFs</div>
+    <div class="op-desc">Combine multiple PDFs into one</div>
   </div>
-  <footer>
-    tux-talk @ 2025
-  </footer>
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // Show list of uploaded file names
-    document.getElementById('pdf-input').addEventListener('change', function() {
-      const fileListDiv = document.getElementById('file-list');
-      fileListDiv.innerHTML = '';
-      for (let i = 0; i < this.files.length; i++) {
-        const para = document.createElement('p');
-        para.textContent = this.files[i].name;
-        fileListDiv.appendChild(para);
-      }
-    });
-  </script>
-</body>
-</html>
+  <div class="op-card" onclick="selectOp(this,'split')">
+    <div class="op-icon">✂️</div>
+    <div class="op-name">Split PDF</div>
+    <div class="op-desc">Extract first page as new file</div>
+  </div>
+  <div class="op-card" onclick="selectOp(this,'pdf_to_jpg')">
+    <div class="op-icon">🖼️</div>
+    <div class="op-name">PDF → JPG</div>
+    <div class="op-desc">Convert first page to image</div>
+  </div>
+  <div class="op-card" onclick="selectOp(this,'pdf_to_word')">
+    <div class="op-icon">📝</div>
+    <div class="op-name">PDF → Word</div>
+    <div class="op-desc">Extract text to .docx (text PDFs only)</div>
+  </div>
+  <div class="op-card" onclick="selectOp(this,'pdf_to_excel')">
+    <div class="op-icon">📊</div>
+    <div class="op-name">PDF → Excel</div>
+    <div class="op-desc">Extract tables to .xlsx (structured text PDFs)</div>
+  </div>
+  <div class="op-card" onclick="selectOp(this,'rotate')">
+    <div class="op-icon">🔄</div>
+    <div class="op-name">Rotate Pages</div>
+    <div class="op-desc">Rotate all pages by 90°, 180° or 270°</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h4 id="process-title">Merge PDFs</h4>
+    <span class="badge badge-yellow" id="op-badge">Select files below</span>
+  </div>
+  <div class="card-body">
+
+    <!-- File upload (shared) -->
+    <div id="file-upload-area">
+      <label class="upload-zone" id="upload-zone" for="pdf-input">
+        <div class="upload-icon">📄</div>
+        <div class="upload-title" id="upload-hint">Click or drag to upload PDFs</div>
+        <div class="upload-sub">You can select multiple files at once</div>
+        <input type="file" id="pdf-input" accept=".pdf" multiple>
+      </label>
+      <div id="file-list" style="margin-top:12px;display:none;">
+        <div id="file-items"></div>
+      </div>
+    </div>
+
+    <!-- Rotate options (shown only for rotate op) -->
+    <div id="rotate-options" style="display:none;margin-top:14px;">
+      <div class="form-label">Rotation Angle</div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="radio" name="rotate_option" value="90" checked> 90° clockwise
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="radio" name="rotate_option" value="180"> 180°
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="radio" name="rotate_option" value="270"> 270° (90° counter-clockwise)
+        </label>
+      </div>
+    </div>
+
+    <!-- Disclaimers for conversion ops -->
+    <div id="convert-disclaimer" class="alert alert-info mt-2" style="display:none;">
+      ℹ️ Conversion works best with <strong>text-based PDFs</strong>. Scanned or image-only PDFs will show an error.
+    </div>
+
+    <div class="processing-state" id="processing-state">
+      <div class="spinner"></div>
+      <p class="text-muted">Processing your PDF...</p>
+    </div>
+
+    <div style="margin-top:16px;display:flex;gap:10px;" id="action-row">
+      <button id="process-btn" class="btn btn-primary">▶ Process PDF</button>
+      <button id="reset-btn" class="btn btn-ghost" onclick="resetTool()">↺ Reset</button>
+    </div>
+
+    <div id="error-area" class="alert alert-danger mt-2" style="display:none;"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let currentOp = 'merge';
+  let uploadedFiles = [];
+
+  const opTitles = { merge:'Merge PDFs', split:'Split PDF', pdf_to_jpg:'PDF → JPG', pdf_to_word:'PDF → Word', pdf_to_excel:'PDF → Excel', rotate:'Rotate Pages' };
+  const processBtn   = document.getElementById('process-btn');
+  const procState    = document.getElementById('processing-state');
+  const actionRow    = document.getElementById('action-row');
+  const errorArea    = document.getElementById('error-area');
+  const fileList     = document.getElementById('file-list');
+  const fileItems    = document.getElementById('file-items');
+  const rotateOpts   = document.getElementById('rotate-options');
+  const disclaimer   = document.getElementById('convert-disclaimer');
+  const uploadHint   = document.getElementById('upload-hint');
+  const uploadZone   = document.getElementById('upload-zone');
+  const pdfInput     = document.getElementById('pdf-input');
+
+  function selectOp(el, op) {
+    document.querySelectorAll('.op-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    currentOp = op;
+    document.getElementById('process-title').textContent = opTitles[op];
+    rotateOpts.style.display = op === 'rotate' ? 'block' : 'none';
+    disclaimer.style.display = ['pdf_to_word','pdf_to_excel'].includes(op) ? 'flex' : 'none';
+    uploadHint.textContent = op === 'merge' ? 'Click or drag to upload PDFs (multiple allowed)' : 'Click or drag to upload a PDF';
+    pdfInput.multiple = op === 'merge';
+    errorArea.style.display = 'none';
+  }
+
+  ['dragenter','dragover'].forEach(e => uploadZone.addEventListener(e, ev => { ev.preventDefault(); uploadZone.classList.add('drag-over'); }));
+  ['dragleave','drop'].forEach(e => uploadZone.addEventListener(e, () => uploadZone.classList.remove('drag-over')));
+  uploadZone.addEventListener('drop', ev => { ev.preventDefault(); handleFiles([...ev.dataTransfer.files]); });
+  pdfInput.addEventListener('change', () => handleFiles([...pdfInput.files]));
+
+  function handleFiles(files) {
+    uploadedFiles = files.filter(f => f.name.endsWith('.pdf'));
+    if (!uploadedFiles.length) { showError('Please upload valid PDF files.'); return; }
+    fileItems.innerHTML = uploadedFiles.map(f =>
+      `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg-input);border-radius:var(--radius-md);margin-bottom:6px;">
+        <span>📄</span>
+        <span style="font-size:13px;font-weight:600;flex:1;">${f.name}</span>
+        <span style="font-size:11px;color:var(--text-faint);">${(f.size/1024).toFixed(0)} KB</span>
+      </div>`
+    ).join('');
+    fileList.style.display = 'block';
+    uploadZone.style.display = 'none';
+    errorArea.style.display = 'none';
+  }
+
+  function showError(msg) { errorArea.textContent = msg; errorArea.style.display = 'block'; }
+
+  function resetTool() {
+    uploadedFiles = []; fileItems.innerHTML = ''; fileList.style.display = 'none';
+    uploadZone.style.display = 'flex'; errorArea.style.display = 'none';
+    pdfInput.value = '';
+  }
+
+  processBtn.addEventListener('click', () => {
+    if (!uploadedFiles.length) { showError('Please upload at least one PDF file first.'); return; }
+    procState.style.display = 'flex'; actionRow.style.display = 'none';
+    errorArea.style.display = 'none'; processBtn.disabled = true;
+
+    const fd = new FormData();
+    uploadedFiles.forEach(f => fd.append('pdf_files', f));
+    fd.append('operation', currentOp);
+    if (currentOp === 'rotate') {
+      const angle = document.querySelector('input[name="rotate_option"]:checked').value;
+      fd.append('rotate_option', angle);
+    }
+
+    fetch('/pdf_tool', { method: 'POST', body: fd })
+      .then(r => {
+        if (!r.ok) return r.text().then(t => { throw new Error(t); });
+        return r.blob().then(blob => ({ blob, contentDisposition: r.headers.get('Content-Disposition') }));
+      })
+      .then(({ blob, contentDisposition }) => {
+        let filename = 'result.pdf';
+        if (currentOp === 'pdf_to_jpg') filename = 'result.jpg';
+        else if (currentOp === 'pdf_to_word') filename = 'result.docx';
+        else if (currentOp === 'pdf_to_excel') filename = 'result.xlsx';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        procState.style.display = 'none'; actionRow.style.display = 'flex';
+        processBtn.disabled = false;
+      })
+      .catch(err => {
+        procState.style.display = 'none'; actionRow.style.display = 'flex';
+        showError(err.message || 'An error occurred. Please try again.');
+        processBtn.disabled = false;
+      });
+  });
+</script>
+{% endblock %}

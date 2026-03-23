@@ -1,202 +1,157 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Image Upscaling Tool</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+{% extends "base.html" %}
+{% block title %}Image Upscaling{% endblock %}
+{% set breadcrumb_tool = "Image Upscaling" %}
+{% set breadcrumb_icon = "🔍" %}
 
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+{% block head %}
+<style>
+  .tool-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .preview-img { max-width: 100%; max-height: 360px; object-fit: contain; border-radius: 8px; display: none; }
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 280px; color: var(--text-faint); gap: 8px; }
+  .empty-state .icon { font-size: 40px; opacity: 0.4; }
+  .processing-state { display: none; flex-direction: column; align-items: center; gap: 10px; min-height: 280px; justify-content: center; }
+  .action-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .scale-options { display: flex; gap: 10px; margin-bottom: 14px; }
+  .scale-option { flex: 1; padding: 12px; border: 1.5px solid var(--border); border-radius: var(--radius-md); text-align: center; cursor: pointer; background: var(--bg-input); transition: all 0.15s; }
+  .scale-option.selected { border-color: var(--primary); background: var(--primary-bg); }
+  .scale-option .scale-num { font-size: 22px; font-weight: 800; color: var(--primary); }
+  .scale-option .scale-lbl { font-size: 11px; color: var(--text-muted); }
+  .info-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+  @media (max-width: 768px) { .tool-layout { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-      background-color: #f8f9fa;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      padding: 10px 15px;
-      background-color: #fff;
-      border-bottom: 1px solid #ddd;
-    }
-    header a {
-      text-decoration: none;
-    }
-    header img {
-      height: 50px;
-    }
-    .container {
-      flex: 1;
-      max-width: 1200px;
-      width: 100%;
-      margin: 20px auto;
-    }
-    .box {
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 15px;
-      background-color: #fff;
-      text-align: center;
-      min-height: 400px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    .box h2 {
-      margin-bottom: 15px;
-    }
-    #original-image, #processed-image {
-      max-width: 100%;
-      height: auto;
-      display: none;
-      margin-bottom: 15px;
-    }
-    footer {
-      background-color: #2f2f2f;
-      color: #fff;
-      text-align: center;
-      padding: 20px 0;
-    }
-    .btn-row {
-      margin-top: 15px;
-    }
-    #loader {
-        border: 8px solid #f3f3f3; /* Light grey */
-        border-top: 8px solid #3498db; /* Blue */
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        animation: spin 2s linear infinite;
-        display: none; /* Hidden by default */
-    }
+{% block content %}
+<h2 style="margin-bottom:6px;">🔍 Image Upscaling</h2>
+<p class="text-muted" style="margin-bottom:16px;">AI super-resolution using the EDSR model. Enlarge images 2× or 4× with sharp detail.</p>
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <a href="{{ url_for('home') }}">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
-    </a>
-  </header>
+<div class="alert alert-warning mb-3">
+  ⚠️ Keep images under <strong>1 megapixel</strong> (e.g. 1000×1000px) for reliable results. Larger images will be rejected.
+</div>
 
-  <div class="container">
-    <h1 class="text-center my-3">Image Upscaling Tool</h1>
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <div class="box">
-          <h2>Original Image</h2>
-          <img id="original-image" alt="Original" />
-          <input type="file" id="image-input" accept="image/*" class="form-control-file" />
-        </div>
-      </div>
+<div class="tool-layout">
+  <div class="card">
+    <div class="card-header"><h4>Upload Image</h4></div>
+    <div class="card-body">
+      <label class="upload-zone" id="upload-zone" for="image-input">
+        <div class="upload-icon">🔍</div>
+        <div class="upload-title">Click or drag to upload</div>
+        <div class="upload-sub">JPG, PNG — max 1 megapixel</div>
+        <input type="file" id="image-input" accept="image/*">
+      </label>
+      <img id="original-image" class="preview-img" alt="Original" style="margin-top:12px;">
+      <div id="orig-info" class="info-row" style="display:none;"></div>
 
-      <div class="col-md-6 mb-3">
-        <div class="box">
-          <h2>Upscaled Image (4x)</h2>
-          <div id="loader"></div>
-          <img id="processed-image" alt="Upscaled" />
-          <div class="btn-row">
-            <button id="upscale-btn" class="btn btn-primary">Upscale Image</button>
-            <button id="download-btn" class="btn btn-success" style="display: none;">Download</button>
+      <div id="controls-section" style="display:none;margin-top:16px;">
+        <div class="form-label" style="margin-bottom:10px;">Upscale Factor</div>
+        <div class="scale-options">
+          <div class="scale-option" id="scale-2x" onclick="selectScale(2)">
+            <div class="scale-num">2×</div>
+            <div class="scale-lbl">Fast · Smaller file</div>
+          </div>
+          <div class="scale-option selected" id="scale-4x" onclick="selectScale(4)">
+            <div class="scale-num">4×</div>
+            <div class="scale-lbl">Best quality · Full AI</div>
           </div>
         </div>
+        <button id="upscale-btn" class="btn btn-primary btn-block" style="margin-bottom:8px;">🔍 Upscale Image</button>
+        <label for="image-input" class="btn btn-ghost btn-block">📁 Change Image</label>
       </div>
     </div>
   </div>
 
-  <footer>
-    tux-talk @ 2025
-  </footer>
+  <div class="card">
+    <div class="card-header">
+      <h4>Upscaled Result</h4>
+      <span class="badge badge-purple">AI EDSR</span>
+    </div>
+    <div class="card-body">
+      <div class="empty-state" id="empty-state">
+        <div class="icon">🔍</div>
+        <p>Upscaled image will appear here</p>
+        <p>Upload an image and choose your scale factor</p>
+      </div>
+      <div class="processing-state" id="processing-state">
+        <div class="spinner"></div>
+        <p class="text-muted">Upscaling with AI — please wait...</p>
+        <small>EDSR super-resolution model is running</small>
+      </div>
+      <img id="processed-image" class="preview-img" alt="Upscaled">
+      <div id="size-comparison" class="info-row" style="display:none;"></div>
+      <div class="action-row" id="result-actions" style="display:none;">
+        <button id="download-btn" class="btn btn-primary">⬇ Download Upscaled PNG</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
 
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    const fileInput = document.getElementById('image-input');
-    const originalImg = document.getElementById('original-image');
-    const processedImg = document.getElementById('processed-image');
-    const upscaleBtn = document.getElementById('upscale-btn');
-    const downloadBtn = document.getElementById('download-btn');
-    const loader = document.getElementById('loader');
+{% block scripts %}
+<script>
+  const fileInput  = document.getElementById('image-input');
+  const uploadZone = document.getElementById('upload-zone');
+  const origImg    = document.getElementById('original-image');
+  const procImg    = document.getElementById('processed-image');
+  const upscaleBtn = document.getElementById('upscale-btn');
+  const downloadBtn= document.getElementById('download-btn');
+  const emptyState = document.getElementById('empty-state');
+  const procState  = document.getElementById('processing-state');
+  const resultActs = document.getElementById('result-actions');
+  const controls   = document.getElementById('controls-section');
+  const origInfo   = document.getElementById('orig-info');
+  const sizeComp   = document.getElementById('size-comparison');
 
-    let uploadedFile = null;
+  let uploadedFile = null, resultUrl = null, selectedScale = 4;
 
-    fileInput.addEventListener('change', function() {
-      if (!fileInput.files.length) return;
-      uploadedFile = fileInput.files[0];
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        originalImg.src = e.target.result;
-        originalImg.style.display = 'block';
-      };
-      reader.readAsDataURL(uploadedFile);
+  function selectScale(n) {
+    selectedScale = n;
+    document.getElementById('scale-2x').classList.toggle('selected', n === 2);
+    document.getElementById('scale-4x').classList.toggle('selected', n === 4);
+  }
 
-      processedImg.src = '';
-      processedImg.style.display = 'none';
-      downloadBtn.style.display = 'none';
-      loader.style.display = 'none';
-    });
+  ['dragenter','dragover'].forEach(e => uploadZone.addEventListener(e, ev => { ev.preventDefault(); uploadZone.classList.add('drag-over'); }));
+  ['dragleave','drop'].forEach(e => uploadZone.addEventListener(e, () => uploadZone.classList.remove('drag-over')));
+  uploadZone.addEventListener('drop', ev => { ev.preventDefault(); if (ev.dataTransfer.files[0]) handleFile(ev.dataTransfer.files[0]); });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
 
-    upscaleBtn.addEventListener('click', function() {
-      if (!uploadedFile) {
-        alert("Please select an image first.");
-        return;
-      }
+  function handleFile(file) {
+    uploadedFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      origImg.src = e.target.result; origImg.style.display = 'block';
+      const img = new Image();
+      img.onload = () => { origInfo.innerHTML = `<span>${img.width}×${img.height}px</span><span>${(file.size/1024).toFixed(0)} KB</span>`; origInfo.style.display = 'flex'; };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    uploadZone.style.display = 'none'; controls.style.display = 'block';
+    emptyState.style.display = 'flex'; procImg.style.display = 'none';
+    resultActs.style.display = 'none'; sizeComp.style.display = 'none';
+  }
 
-      const formData = new FormData();
-      formData.append('image', uploadedFile);
-
-      loader.style.display = 'block';
-      processedImg.style.display = 'none';
-      downloadBtn.style.display = 'none';
-
-      fetch('/process_upscaling', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => {
-        // === UPDATED: Check for specific error codes ===
-        if (response.status === 413) { // Payload Too Large
-            return response.text().then(text => { throw new Error(text) });
-        }
-        if (!response.ok) {
-            throw new Error('An error occurred during the upscaling process.');
-        }
-        return response.blob();
-      })
+  upscaleBtn.addEventListener('click', () => {
+    if (!uploadedFile) return;
+    emptyState.style.display = 'none'; procImg.style.display = 'none';
+    procState.style.display = 'flex'; resultActs.style.display = 'none';
+    upscaleBtn.disabled = true;
+    const fd = new FormData();
+    fd.append('image', uploadedFile); fd.append('scale', selectedScale);
+    fetch('/process_upscaling', { method: 'POST', body: fd })
+      .then(r => { if (r.status === 413) throw new Error('Image too large — use an image under 1 megapixel.'); if (!r.ok) return r.text().then(t => { throw new Error(t); }); return r.blob(); })
       .then(blob => {
-        const url = URL.createObjectURL(blob);
-        processedImg.src = url;
-        loader.style.display = 'none';
-        processedImg.style.display = 'block';
-        
-        downloadBtn.style.display = 'inline-block';
-        downloadBtn.onclick = function() {
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = "upscaled_image.png";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        };
+        resultUrl = URL.createObjectURL(blob);
+        procImg.src = resultUrl; procState.style.display = 'none';
+        procImg.style.display = 'block'; resultActs.style.display = 'flex';
+        sizeComp.innerHTML = `<span>Original: ${(uploadedFile.size/1024).toFixed(0)} KB</span><span>Upscaled ${selectedScale}×: ${(blob.size/1024).toFixed(0)} KB</span>`;
+        sizeComp.style.display = 'flex'; upscaleBtn.disabled = false;
       })
-      .catch(err => {
-        // Display the specific error message from the server
-        alert("Error: " + err.message);
-        loader.style.display = 'none';
-        console.error(err);
-      });
-    });
-  </script>
-</body>
-</html>
+      .catch(err => { procState.style.display = 'none'; emptyState.style.display = 'flex'; emptyState.querySelector('p').textContent = err.message; upscaleBtn.disabled = false; });
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if (!resultUrl) return;
+    const a = document.createElement('a'); a.href = resultUrl; a.download = `upscaled_${selectedScale}x.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+</script>
+{% endblock %}

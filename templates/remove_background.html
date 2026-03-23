@@ -1,175 +1,144 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Background Remover</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+{% extends "base.html" %}
+{% block title %}Background Remover{% endblock %}
+{% set breadcrumb_tool = "Background Remover" %}
+{% set breadcrumb_icon = "🖼️" %}
 
-  <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+{% block head %}
+<style>
+  .tool-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 280px; color: var(--text-faint);
+    gap: 8px;
+  }
+  .empty-state .icon { font-size: 40px; opacity: 0.4; }
+  .empty-state p { font-size: 13px; }
+  .preview-img { max-width: 100%; max-height: 360px; object-fit: contain; border-radius: 8px; display: none; }
+  .action-row { display: flex; gap: 10px; margin-top: 14px; }
+  .processing-state { display: none; flex-direction: column; align-items: center; gap: 10px; min-height: 280px; justify-content: center; }
+  @media (max-width: 768px) { .tool-layout { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-      background-color: #f8f9fa;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      padding: 10px 15px;
-      background-color: #fff;
-      border-bottom: 1px solid #ddd;
-    }
-    header a {
-      text-decoration: none;
-    }
-    header img {
-      height: 50px;
-    }
-    .container {
-      flex: 1;
-      max-width: 1200px;
-      width: 100%;
-      margin: 20px auto;
-    }
-    .box {
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 15px;
-      background-color: #fff;
-      text-align: center;
-      min-height: 300px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    .box h2 {
-      margin-bottom: 15px;
-    }
-    #original-image, #processed-image {
-      max-width: 100%;
-      height: auto;
-      display: none; /* Hidden until we actually have something to show */
-      margin-bottom: 15px;
-    }
-    footer {
-      background-color: #2f2f2f;
-      color: #fff;
-      text-align: center;
-      padding: 20px 0;
-    }
-    .btn-row {
-      margin-top: 15px;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <a href="{{ url_for('home') }}">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
-    </a>
-  </header>
+{% block content %}
+<h2 style="margin-bottom:6px;">🖼️ Background Remover</h2>
+<p class="text-muted" style="margin-bottom:24px;">Upload an image and AI will remove the background. Download as transparent PNG.</p>
 
-  <div class="container">
-    <h1 class="text-center my-3">Background Remover</h1>
-    <div class="row">
-      <!-- Original Image Box -->
-      <div class="col-md-6 mb-3">
-        <div class="box">
-          <h2>Original Image</h2>
-          <img id="original-image" alt="Original" />
-          <input type="file" id="image-input" accept="image/*" class="form-control-file" />
-        </div>
-      </div>
+<div class="tool-layout">
 
-      <!-- Processed Image Box -->
-      <div class="col-md-6 mb-3">
-        <div class="box">
-          <h2>Processed Image</h2>
-          <img id="processed-image" alt="Processed" />
-          <div class="btn-row">
-            <button id="remove-btn" class="btn btn-primary">Remove Background</button>
-            <button id="download-btn" class="btn btn-success" style="display: none;">Download</button>
-          </div>
-        </div>
+  <!-- Upload / Original -->
+  <div class="card">
+    <div class="card-header"><h4>Original Image</h4></div>
+    <div class="card-body">
+      <label class="upload-zone" id="upload-zone" for="image-input">
+        <div class="upload-icon">📁</div>
+        <div class="upload-title">Click or drag to upload</div>
+        <div class="upload-sub">JPG, PNG, WEBP — any size</div>
+        <input type="file" id="image-input" accept="image/*">
+      </label>
+      <img id="original-image" class="preview-img" alt="Original" style="margin-top:12px;">
+      <div class="action-row" id="upload-actions" style="display:none;">
+        <button id="remove-btn" class="btn btn-primary">✨ Remove Background</button>
+        <label for="image-input" class="btn btn-ghost">📁 Change Image</label>
       </div>
     </div>
   </div>
 
-  <footer>
-    tux-talk @ 2025
-  </footer>
+  <!-- Result -->
+  <div class="card">
+    <div class="card-header">
+      <h4>Result — No Background</h4>
+      <span class="badge badge-purple">AI Powered</span>
+    </div>
+    <div class="card-body">
+      <div class="empty-state" id="empty-state">
+        <div class="icon">🖼️</div>
+        <p>Result will appear here</p>
+        <p>Upload an image and click Remove Background</p>
+      </div>
+      <div class="processing-state" id="processing-state">
+        <div class="spinner"></div>
+        <p class="text-muted">Removing background with AI...</p>
+        <small>This may take a few seconds</small>
+      </div>
+      <div class="checkerboard" style="border-radius:8px;display:none;" id="checker-wrap">
+        <img id="processed-image" class="preview-img" alt="No Background" style="display:block;">
+      </div>
+      <div class="action-row" id="result-actions" style="display:none;">
+        <button id="download-btn" class="btn btn-primary">⬇ Download PNG</button>
+      </div>
+    </div>
+  </div>
 
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    const fileInput = document.getElementById('image-input');
-    const originalImg = document.getElementById('original-image');
-    const processedImg = document.getElementById('processed-image');
-    const removeBtn = document.getElementById('remove-btn');
-    const downloadBtn = document.getElementById('download-btn');
+</div>
+{% endblock %}
 
-    let uploadedFile = null; // Will hold the selected file blob
+{% block scripts %}
+<script>
+  const fileInput   = document.getElementById('image-input');
+  const uploadZone  = document.getElementById('upload-zone');
+  const origImg     = document.getElementById('original-image');
+  const procImg     = document.getElementById('processed-image');
+  const checkerWrap = document.getElementById('checker-wrap');
+  const removeBtn   = document.getElementById('remove-btn');
+  const downloadBtn = document.getElementById('download-btn');
+  const emptyState  = document.getElementById('empty-state');
+  const procState   = document.getElementById('processing-state');
+  const uploadActs  = document.getElementById('upload-actions');
+  const resultActs  = document.getElementById('result-actions');
 
-    // Preview the selected image in the first box
-    fileInput.addEventListener('change', function() {
-      if (!fileInput.files.length) return;
-      uploadedFile = fileInput.files[0];
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        originalImg.src = e.target.result;
-        originalImg.style.display = 'block';
-      };
-      reader.readAsDataURL(uploadedFile);
+  let uploadedFile = null, resultUrl = null;
 
-      // Clear the processed image if we upload a new file
-      processedImg.src = '';
-      processedImg.style.display = 'none';
-      downloadBtn.style.display = 'none';
-    });
+  // Drag & drop
+  ['dragenter','dragover'].forEach(e => uploadZone.addEventListener(e, ev => { ev.preventDefault(); uploadZone.classList.add('drag-over'); }));
+  ['dragleave','drop'].forEach(e => uploadZone.addEventListener(e, () => uploadZone.classList.remove('drag-over')));
+  uploadZone.addEventListener('drop', ev => { ev.preventDefault(); if (ev.dataTransfer.files[0]) handleFile(ev.dataTransfer.files[0]); });
 
-    // Remove Background
-    removeBtn.addEventListener('click', function() {
-      if (!uploadedFile) {
-        alert("Please select an image first.");
-        return;
-      }
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
 
-      const formData = new FormData();
-      formData.append('image', uploadedFile);
+  function handleFile(file) {
+    uploadedFile = file;
+    const reader = new FileReader();
+    reader.onload = e => { origImg.src = e.target.result; origImg.style.display = 'block'; };
+    reader.readAsDataURL(file);
+    uploadZone.style.display = 'none';
+    uploadActs.style.display = 'flex';
+    emptyState.style.display = 'flex';
+    checkerWrap.style.display = 'none';
+    resultActs.style.display = 'none';
+  }
 
-      fetch('/remove_bg', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.blob())
+  removeBtn.addEventListener('click', () => {
+    if (!uploadedFile) return;
+    emptyState.style.display = 'none';
+    procState.style.display = 'flex';
+    removeBtn.disabled = true;
+
+    const fd = new FormData();
+    fd.append('image', uploadedFile);
+    fetch('/remove_bg', { method: 'POST', body: fd })
+      .then(r => { if (!r.ok) throw new Error('Server error'); return r.blob(); })
       .then(blob => {
-        const url = URL.createObjectURL(blob);
-        processedImg.src = url;
-        processedImg.style.display = 'block';
-        // Setup download button
-        downloadBtn.style.display = 'inline-block';
-        downloadBtn.onclick = function() {
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = "no_bg.png";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        };
+        resultUrl = URL.createObjectURL(blob);
+        procImg.src = resultUrl;
+        procState.style.display = 'none';
+        checkerWrap.style.display = 'block';
+        resultActs.style.display = 'flex';
+        removeBtn.disabled = false;
       })
       .catch(err => {
-        alert("Error removing background: " + err);
-        console.error(err);
+        procState.style.display = 'none';
+        emptyState.style.display = 'flex';
+        emptyState.querySelector('p').textContent = 'Error: ' + err.message;
+        removeBtn.disabled = false;
       });
-    });
-  </script>
-</body>
-</html>
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if (!resultUrl) return;
+    const a = document.createElement('a');
+    a.href = resultUrl; a.download = 'no_background.png';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+</script>
+{% endblock %}

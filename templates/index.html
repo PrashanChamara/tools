@@ -1,190 +1,220 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>tux-talk-tools</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-  
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
-  
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
-  <meta name="theme-color" content="#2f2f2f" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-      background-color: #f8f9fa;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      padding: 10px 15px;
-      background-color: #fff;
-      border-bottom: 1px solid #ddd;
-    }
-    header a {
-      text-decoration: none;
-    }
-    header img {
-      height: 50px;
-    }
-    .main-content {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-    footer {
-      background-color: #2f2f2f;
-      color: #fff;
-      text-align: center;
-      padding: 20px 0;
-    }
-    .card-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 20px;
-    }
-    .card {
-      width: 280px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.15);
-      border: none;
-      border-radius: 8px;
-    }
-    .card img {
-      height: 120px;
-      width: auto;
-      margin: 0 auto;
-      display: block;
-      padding: 20px;
-    }
-    .card-title {
-      text-align: center;
-      margin-top: 10px;
-    }
-    .card-text {
-      text-align: center;
-      margin: 10px;
-    }
-    .btn-service {
-      display: block;
-      margin: 0 auto 20px auto;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <a href="{{ url_for('home') }}">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
-    </a>
-  </header>
+{% block head %}
+<style>
+  .hero {
+    padding: 36px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+  .hero h1 { color: var(--text-dark); margin-bottom: 10px; }
+  .hero h1 span { color: var(--primary); }
+  .hero p { max-width: 520px; }
+  .hero-stats { display: flex; gap: 28px; margin-top: 20px; }
+  .stat-num { font-size: 26px; font-weight: 800; color: var(--primary); }
+  .stat-lbl { font-size: 11px; color: var(--text-faint); margin-top: 1px; }
 
-  <div class="main-content">
-    <div class="card-container">
-      <div class="card">
-        <img src="{{ url_for('static', filename='icons/textspeech.png') }}" alt="Speech to Text Icon">
-        <div class="card-body">
-          <h5 class="card-title">Speech to Text</h5>
-          <p class="card-text">
-            Convert your voice into written text in real time.
-          </p>
-          <a href="{{ url_for('speech_to_text') }}" class="btn btn-primary btn-service">Try It</a>
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-title  { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-faint); }
+
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .tool-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+    display: block;
+    color: inherit;
+  }
+  .tool-card:hover {
+    border-color: var(--primary-border);
+    box-shadow: var(--shadow-3);
+    transform: translateY(-3px);
+    text-decoration: none;
+  }
+  .tool-card.featured {
+    border-color: var(--primary-border);
+    background: linear-gradient(145deg, #faf9ff, #f5f3ff);
+  }
+  .tool-card.placeholder {
+    border-style: dashed;
+    border-color: #c7d2fe;
+    background: #fafbff;
+    cursor: default;
+  }
+  .tool-card.placeholder:hover { transform: none; box-shadow: none; border-color: #c7d2fe; }
+
+  .tool-icon-wrap {
+    width: 48px; height: 48px;
+    border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    margin-bottom: 14px;
+  }
+  .tool-card-title { font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: 5px; }
+  .tool-card-desc  { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .tool-card-cta   { margin-top: 14px; font-size: 12px; color: var(--primary); font-weight: 600; }
+  .tool-badge-pos {
+    position: absolute; top: 12px; right: 12px;
+  }
+
+  .bottom-row { display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+  .recent-list { display: flex; flex-direction: column; gap: 8px; }
+  .recent-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; background: var(--bg-input);
+    border-radius: var(--radius-md);
+  }
+  .recent-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .recent-info { flex: 1; min-width: 0; }
+  .recent-name { font-size: 12px; font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .recent-meta { font-size: 10px; color: var(--text-faint); margin-top: 1px; }
+
+  .tips-list { display: flex; flex-direction: column; }
+  .tip-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--bg-input); }
+  .tip-item:last-child { border-bottom: none; }
+  .tip-dot { width: 24px; height: 24px; background: var(--primary-bg); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .tip-text { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  @media (max-width: 1024px) { .tools-grid { grid-template-columns: repeat(3, 1fr); } .bottom-row { grid-template-columns: 1fr; } }
+  @media (max-width: 768px)  { .tools-grid { grid-template-columns: repeat(2, 1fr); } .hero-stats { gap: 16px; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="hero">
+  <h1>Your everyday <span>AI-powered</span> toolkit</h1>
+  <p>Professional tools for images, documents, spreadsheets and speech — all in one place. No installs, no limits.</p>
+  <div class="hero-stats">
+    <div><div class="stat-num">7</div><div class="stat-lbl">Tools</div></div>
+    <div><div class="stat-num">5</div><div class="stat-lbl">AI-powered</div></div>
+    <div><div class="stat-num">PWA</div><div class="stat-lbl">Works offline</div></div>
+  </div>
+</div>
+
+<div class="section-header">
+  <div class="section-title">All Tools</div>
+</div>
+
+<div class="tools-grid">
+
+  <a href="/speech_to_text" class="tool-card">
+    <span class="tool-badge-pos badge badge-purple">AI</span>
+    <div class="tool-icon-wrap" style="background:#ede9fe;">🎙️</div>
+    <div class="tool-card-title">Speech to Text</div>
+    <div class="tool-card-desc">Real-time transcription with multi-language support. Export to Word.</div>
+    <div class="tool-card-cta">Open tool →</div>
+  </a>
+
+  <a href="/remove_background" class="tool-card">
+    <span class="tool-badge-pos badge badge-purple">AI</span>
+    <div class="tool-icon-wrap" style="background:#fce7f3;">🖼️</div>
+    <div class="tool-card-title">Background Remover</div>
+    <div class="tool-card-desc">Neural network background removal. Download as transparent PNG.</div>
+    <div class="tool-card-cta">Open tool →</div>
+  </a>
+
+  <a href="/sketch" class="tool-card">
+    <div class="tool-icon-wrap" style="background:#fff7ed;">✏️</div>
+    <div class="tool-card-title">Sketch Converter</div>
+    <div class="tool-card-desc">Transform photos into pencil sketch art with adjustable intensity.</div>
+    <div class="tool-card-cta">Open tool →</div>
+  </a>
+
+  <a href="/excel_tool" class="tool-card featured">
+    <span class="tool-badge-pos badge badge-green">Enhanced</span>
+    <div class="tool-icon-wrap" style="background:#dcfce7;">📊</div>
+    <div class="tool-card-title">Excel Merge</div>
+    <div class="tool-card-desc">Merge up to 5 files. Pick columns from any file. Build custom datasets.</div>
+    <div class="tool-card-cta">Open tool →</div>
+  </a>
+
+  <a href="/pdf_tool" class="tool-card">
+    <span class="tool-badge-pos badge badge-yellow">Pro</span>
+    <div class="tool-icon-wrap" style="background:#fee2e2;">📄</div>
+    <div class="tool-card-title">PDF Tools</div>
+    <div class="tool-card-desc">Merge, split, rotate, convert PDF to Word, Excel, or JPG.</div>
+    <div class="tool-card-cta">Open tool →</div>
+  </a>
+
+  <a href="/color_correction" class="tool-card featured">
+    <span class="tool-badge-pos badge badge-green">Studio</span>
+    <div class="tool-icon-wrap" style="background:#fef9c3;">🎨</div>
+    <div class="tool-card-title">Color Correction</div>
+    <div class="tool-card-desc">Studio-level editing: curves, exposure, highlights, shadows, HSL sliders.</div>
+    <div class="tool-card-cta">Open tool →</div>
+  </a>
+
+  <a href="/image_upscaling" class="tool-card">
+    <span class="tool-badge-pos badge badge-purple">AI 4×</span>
+    <div class="tool-icon-wrap" style="background:#ede9fe;">🔍</div>
+    <div class="tool-card-title">Image Upscaling</div>
+    <div class="tool-card-desc">EDSR model super-resolution. Upscale images 2× or 4× with AI.</div>
+    <div class="tool-card-cta">Open tool →</div>
+  </a>
+
+  <div class="tool-card placeholder">
+    <div class="tool-icon-wrap" style="background:#f0f9ff;font-size:28px;">＋</div>
+    <div class="tool-card-title" style="color:var(--primary);">More Coming</div>
+    <div class="tool-card-desc" style="color:#c4b5fd;">New tools are added regularly.</div>
+  </div>
+
+</div>
+
+<div class="bottom-row">
+  <div class="card">
+    <div class="card-header">
+      <h4>Recent Activity</h4>
+      <small>Your last processed files appear here</small>
+    </div>
+    <div class="card-body">
+      <div class="recent-list">
+        <div class="recent-item">
+          <div class="recent-icon" style="background:#f0edff;">⚡</div>
+          <div class="recent-info">
+            <div class="recent-name">Use any tool to get started</div>
+            <div class="recent-meta">Files processed in this session appear here</div>
+          </div>
         </div>
       </div>
-
-      <div class="card">
-        <img src="{{ url_for('static', filename='icons/removebg.png') }}" alt="Background Remover Icon">
-        <div class="card-body">
-          <h5 class="card-title">Background Remover</h5>
-          <p class="card-text">
-            Upload any image and remove its background automatically.
-          </p>
-          <a href="{{ url_for('remove_background') }}" class="btn btn-primary btn-service">Try It</a>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="{{ url_for('static', filename='icons/sketching.png') }}" alt="Sketching Tool Icon">
-        <div class="card-body">
-          <h5 class="card-title">Sketching</h5>
-          <p class="card-text">
-            Transform your images into pencil sketches with a single click.
-          </p>
-          <a href="{{ url_for('sketch') }}" class="btn btn-primary btn-service">Try It</a>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="{{ url_for('static', filename='icons/excelmerge.png') }}" alt="Excel Merge Tool Icon">
-        <div class="card-body">
-          <h5 class="card-title">Excel Merge Tool</h5>
-          <p class="card-text">
-            Merge two Excel files based on a common column and select extra columns to copy.
-          </p>
-          <a href="{{ url_for('excel_tool') }}" class="btn btn-primary btn-service">Try It</a>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="{{ url_for('static', filename='icons/pdfedit.png') }}" alt="PDF Editing Tool Icon">
-        <div class="card-body">
-          <h5 class="card-title">PDF Editing Tool</h5>
-          <p class="card-text">
-            Merge, split, arrange, convert, and even adjust file size or rotate your PDFs.
-          </p>
-          <a href="{{ url_for('pdf_tool') }}" class="btn btn-primary btn-service">Try It</a>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="{{ url_for('static', filename='icons/colorcorrect.png') }}" alt="Color Correction Icon">
-        <div class="card-body">
-          <h5 class="card-title">Color Correction</h5>
-          <p class="card-text">
-            Automatically correct the colors of your photos for day or night time.
-          </p>
-          <a href="{{ url_for('color_correction') }}" class="btn btn-primary btn-service">Try It</a>
-        </div>
-      </div>
-      
-      <div class="card">
-        <img src="{{ url_for('static', filename='icons/upscale.png') }}" alt="Image Upscaling Icon">
-        <div class="card-body">
-          <h5 class="card-title">Image Upscaling</h5>
-          <p class="card-text">
-            Increase the resolution of your images using AI for a clearer result.
-          </p>
-          <a href="{{ url_for('image_upscaling') }}" class="btn btn-primary btn-service">Try It</a>
-        </div>
-      </div>
-
     </div>
   </div>
 
-  <footer>
-    tux-talk @ 2025
-  </footer>
+  <div class="card">
+    <div class="card-header"><h4>💡 Quick Tips</h4></div>
+    <div class="card-body" style="padding:14px 18px;">
+      <div class="tips-list">
+        <div class="tip-item">
+          <div class="tip-dot">📊</div>
+          <div class="tip-text">Excel Merge supports up to <strong>5 files</strong>. Match on any common column.</div>
+        </div>
+        <div class="tip-item">
+          <div class="tip-dot">🎨</div>
+          <div class="tip-text">Color Correction: use the <strong>Curves</strong> tab for precise tonal control.</div>
+        </div>
+        <div class="tip-item">
+          <div class="tip-dot">🔍</div>
+          <div class="tip-text">Keep images under <strong>1MP</strong> for fastest upscaling results.</div>
+        </div>
+        <div class="tip-item">
+          <div class="tip-dot">📱</div>
+          <div class="tip-text">Install as a <strong>PWA</strong> for offline access on any device.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}")
-        .then(reg => console.log("Service Worker Registered", reg))
-        .catch(err => console.log("Service Worker Registration Failed", err));
-    }
-  </script>
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

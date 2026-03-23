@@ -1,162 +1,225 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Speech to Text</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-  
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-      background-color: #f8f9fa;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      padding: 10px 15px;
-      background-color: #fff;
-      border-bottom: 1px solid #ddd;
-    }
-    header img {
-      height: 50px;
-    }
-    .container {
-      flex: 1;
-      max-width: 600px;
-      width: 100%;
-      margin: 20px auto;
-    }
-    #transcription {
-      width: 100%;
-      height: 200px;
-      padding: 15px;
-      font-size: 16px;
-      margin-top: 20px;
-      resize: vertical;
-    }
-    .btn {
-      margin: 10px 0;
-    }
-    footer {
-      background-color: #2f2f2f;
-      color: #fff;
-      text-align: center;
-      padding: 20px 0;
-    }
-  </style>
-</head>
-<body>
-    <header>
-        <a href="{{ url_for('home') }}">
-          <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
-        </a>
-      </header>
+{% extends "base.html" %}
+{% block title %}Speech to Text{% endblock %}
+{% set breadcrumb_tool = "Speech to Text" %}
+{% set breadcrumb_icon = "🎙️" %}
 
-  <div class="container">
-    <h1 class="text-center my-3">Speech to Text</h1>
-    
-    <div class="text-center">
-      <!-- Language Selector -->
+{% block head %}
+<style>
+  .tool-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+  .controls-card .form-group { margin-bottom: 14px; }
+  .status-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: var(--radius-md);
+    font-size: 13px; font-weight: 600; margin-bottom: 16px;
+    background: var(--bg-input); border: 1.5px solid var(--border); color: var(--text-muted);
+  }
+  .status-bar.listening { background: #fef9c3; border-color: #fde047; color: var(--warning); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+  .status-bar.listening .status-dot { background: var(--warning); animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  textarea.transcription {
+    width: 100%; min-height: 320px; padding: 16px;
+    font-size: 15px; line-height: 1.7;
+    background: var(--bg-input); border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg); font-family: inherit; color: var(--text-dark);
+    resize: vertical; outline: none; transition: border-color 0.15s;
+  }
+  textarea.transcription:focus { border-color: var(--primary); background: #fff; }
+
+  .word-count { font-size: 11px; color: var(--text-faint); text-align: right; margin-top: 6px; }
+  .action-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+
+  @media (max-width: 768px) { .tool-layout { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:6px;">🎙️ Speech to Text</h2>
+<p class="text-muted" style="margin-bottom:24px;">Real-time transcription from your microphone. Edit the text, then download as Word.</p>
+
+<div class="tool-layout">
+
+  <!-- Controls -->
+  <div class="card controls-card">
+    <div class="card-header"><h4>Controls</h4></div>
+    <div class="card-body">
+
       <div class="form-group">
-        <label for="language-select">Choose Language:</label>
-        <select id="language-select" class="form-control w-50 mx-auto">
+        <label class="form-label">Language</label>
+        <select id="language-select" class="form-control">
           <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
           <option value="si-LK">Sinhala (LK)</option>
+          <option value="fr-FR">French</option>
+          <option value="es-ES">Spanish</option>
+          <option value="de-DE">German</option>
+          <option value="ja-JP">Japanese</option>
+          <option value="zh-CN">Chinese (Simplified)</option>
         </select>
       </div>
-      <!-- Start and Stop Buttons -->
-      <button id="start-btn" class="btn btn-primary">Start Talking</button>
-      <button id="stop-btn" class="btn btn-danger" disabled>Stop</button>
-    </div>
-    
-    <!-- Editable Transcription Area -->
-    <textarea id="transcription" class="form-control" placeholder="Your transcription will appear here..."></textarea>
-    
-    <!-- Download Button -->
-    <div class="text-center">
-      <button id="download-btn" class="btn btn-success">Download as Word File</button>
+
+      <div class="status-bar" id="status-bar">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Ready to record</span>
+      </div>
+
+      <button id="start-btn" class="btn btn-primary btn-block" style="margin-bottom:8px;">
+        🎙️ Start Talking
+      </button>
+      <button id="stop-btn" class="btn btn-ghost btn-block" disabled>
+        ⏹ Stop Recording
+      </button>
+
+      <hr style="margin:16px 0;border:none;border-top:1px solid var(--border);">
+
+      <button id="copy-btn" class="btn btn-outline btn-block" style="margin-bottom:8px;">
+        📋 Copy to Clipboard
+      </button>
+      <button id="clear-btn" class="btn btn-ghost btn-block">
+        🗑 Clear Text
+      </button>
     </div>
   </div>
-  
-  <footer>
-    tux-talk @ 2025
-  </footer>
 
-  <!-- Speech Recognition Script -->
-  <script>
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Sorry, your browser does not support the Speech Recognition API. Please use Google Chrome.");
-    }
+  <!-- Transcription -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h4>Transcription</h4>
+        <small id="word-count-header">0 words · 0 chars</small>
+      </div>
+      <div class="card-body">
+        <textarea id="transcription" class="transcription" placeholder="Your transcription will appear here as you speak. You can edit the text directly."></textarea>
+        <div class="word-count" id="word-count">0 words · 0 characters</div>
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = document.getElementById('language-select').value;
+        <div class="action-row">
+          <button id="download-btn" class="btn btn-primary btn-lg">
+            ⬇ Download as Word
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-info mt-2" id="browser-warning" style="display:none;">
+      ⚠️ Your browser does not support the Web Speech API. Please use Google Chrome or Microsoft Edge.
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const textarea    = document.getElementById('transcription');
+  const startBtn    = document.getElementById('start-btn');
+  const stopBtn     = document.getElementById('stop-btn');
+  const statusBar   = document.getElementById('status-bar');
+  const statusText  = document.getElementById('status-text');
+  const wordCount   = document.getElementById('word-count');
+  const wordCountH  = document.getElementById('word-count-header');
+  const langSelect  = document.getElementById('language-select');
+  const warning     = document.getElementById('browser-warning');
+
+  if (!SpeechRecognition) {
+    warning.style.display = 'flex';
+    startBtn.disabled = true;
+  }
+
+  function updateWordCount() {
+    const text = textarea.value.trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    const chars = text.length;
+    const s = `${words} word${words !== 1 ? 's' : ''} · ${chars} character${chars !== 1 ? 's' : ''}`;
+    wordCount.textContent = s;
+    wordCountH.textContent = s;
+  }
+
+  textarea.addEventListener('input', updateWordCount);
+
+  let recognition, finalTranscript = '';
+
+  function initRecognition() {
+    recognition = new SpeechRecognition();
+    recognition.lang = langSelect.value;
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    let finalTranscript = '';
-
-    recognition.onresult = function(event) {
-      let interimTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        } else {
-          interimTranscript += event.results[i][0].transcript;
-        }
+    recognition.onresult = function(e) {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
       }
-      document.getElementById('transcription').value = finalTranscript + interimTranscript;
+      textarea.value = finalTranscript + interim;
+      updateWordCount();
     };
 
-    recognition.onerror = function(event) {
-      console.error("Speech recognition error:", event.error);
+    recognition.onerror = function(e) {
+      setStatus('Error: ' + e.error, false);
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
     };
 
-    document.getElementById('start-btn').addEventListener('click', function() {
-      finalTranscript = document.getElementById('transcription').value;
-      recognition.start();
-      this.disabled = true;
-      document.getElementById('stop-btn').disabled = false;
+    recognition.onend = function() {
+      setStatus('Ready to record', false);
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    };
+  }
+
+  function setStatus(text, listening) {
+    statusText.textContent = text;
+    statusBar.className = 'status-bar' + (listening ? ' listening' : '');
+  }
+
+  startBtn.addEventListener('click', function() {
+    finalTranscript = textarea.value;
+    initRecognition();
+    recognition.start();
+    setStatus('Listening…', true);
+    this.disabled = true;
+    stopBtn.disabled = false;
+  });
+
+  stopBtn.addEventListener('click', function() {
+    if (recognition) recognition.stop();
+    setStatus('Stopped', false);
+    this.disabled = true;
+    startBtn.disabled = false;
+  });
+
+  langSelect.addEventListener('change', function() {
+    if (recognition) recognition.lang = this.value;
+  });
+
+  document.getElementById('copy-btn').addEventListener('click', function() {
+    navigator.clipboard.writeText(textarea.value).then(() => {
+      this.textContent = '✓ Copied!';
+      setTimeout(() => this.textContent = '📋 Copy to Clipboard', 2000);
     });
+  });
 
-    document.getElementById('stop-btn').addEventListener('click', function() {
-      recognition.stop();
-      document.getElementById('start-btn').disabled = false;
-      this.disabled = true;
-    });
+  document.getElementById('clear-btn').addEventListener('click', function() {
+    textarea.value = '';
+    finalTranscript = '';
+    updateWordCount();
+  });
 
-    document.getElementById('language-select').addEventListener('change', function() {
-      recognition.lang = this.value;
-    });
-
-    document.getElementById('download-btn').addEventListener('click', function() {
-      const text = document.getElementById('transcription').value;
-      const formData = new FormData();
-      formData.append('text', text);
-
-      fetch('/download', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.blob())
+  document.getElementById('download-btn').addEventListener('click', function() {
+    const text = textarea.value;
+    if (!text.trim()) { alert('Nothing to download — transcription is empty.'); return; }
+    const fd = new FormData();
+    fd.append('text', text);
+    fetch('/download', { method: 'POST', body: fd })
+      .then(r => r.blob())
       .then(blob => {
-        const url = window.URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = "transcription.docx";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        a.href = url; a.download = 'transcription.docx';
+        document.body.appendChild(a); a.click(); a.remove();
       });
-    });
-  </script>
-</body>
-</html>
+  });
+</script>
+{% endblock %}
