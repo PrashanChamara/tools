@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Section 2 — Excel Merge Tool</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f0f2f7;
+  color: #1a1a2e;
+  padding: 28px 24px 60px;
+}
+.page-header { text-align:center; margin-bottom:32px; }
+.section-badge {
+  display:inline-block; background:#dcfce7; color:#16a34a;
+  font-size:12px; font-weight:700; padding:4px 12px;
+  border-radius:20px; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.06em;
+}
+.page-header h1 { font-size:24px; font-weight:700; color:#1a1a2e; }
+.page-header p { color:#888; font-size:14px; margin-top:6px; }
+
+/* Browser chrome */
+.browser {
+  background:#fff; border-radius:16px;
+  box-shadow:0 4px 40px rgba(0,0,0,0.12); overflow:hidden;
+  max-width:1100px; margin:0 auto 32px;
+}
+.browser-bar {
+  background:#f4f5f7; border-bottom:1px solid #e2e8f0;
+  padding:10px 16px; display:flex; align-items:center; gap:12px;
+}
+.browser-dots { display:flex; gap:6px; }
+.dot { width:11px; height:11px; border-radius:50%; }
+.dot-r{background:#ff5f57;} .dot-y{background:#febc2e;} .dot-g{background:#28c840;}
+.browser-url {
+  flex:1; background:#fff; border:1px solid #e2e8f0;
+  border-radius:8px; padding:5px 12px; font-size:12px; color:#888;
+}
+
+/* App nav (shared) */
+.app-nav {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 28px; background:#fff;
+  border-bottom:1.5px solid #e8ecf3;
+  box-shadow:0 1px 6px rgba(0,0,0,0.06);
+}
+.app-logo { display:flex; align-items:center; gap:10px; font-weight:800; font-size:16px; color:#1a1a2e; }
+.logo-mark {
+  width:30px; height:30px;
+  background:linear-gradient(135deg,#6c47ff,#a855f7); border-radius:9px;
+  display:flex; align-items:center; justify-content:center; font-size:15px;
+  box-shadow:0 3px 10px rgba(108,71,255,0.35);
+}
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:13px; color:#aaa; }
+.breadcrumb .current { color:#1a1a2e; font-weight:600; }
+.breadcrumb .sep { color:#ddd; }
+
+/* Page content */
+.page-body { padding:24px 28px; background:#f4f6fb; }
+
+/* Step indicator */
+.steps {
+  display:flex; align-items:center; gap:0;
+  margin-bottom:24px; background:#fff;
+  border:1.5px solid #e8ecf3; border-radius:14px;
+  padding:16px 24px; justify-content:center;
+}
+.step { display:flex; align-items:center; gap:8px; }
+.step-num {
+  width:26px; height:26px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700;
+}
+.step.done .step-num { background:#dcfce7; color:#16a34a; }
+.step.active .step-num { background:linear-gradient(135deg,#6c47ff,#a855f7); color:#fff; }
+.step.pending .step-num { background:#f0f2f7; color:#aaa; }
+.step-label { font-size:13px; font-weight:600; }
+.step.done .step-label { color:#16a34a; }
+.step.active .step-label { color:#6c47ff; }
+.step.pending .step-label { color:#aaa; }
+.step-line { width:40px; height:2px; background:#e8ecf3; margin:0 8px; }
+.step-line.done { background:#16a34a; }
+
+/* Upload zone */
+.upload-section {
+  display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;
+}
+.upload-panel {
+  background:#fff; border:1.5px solid #e8ecf3; border-radius:16px; overflow:hidden;
+}
+.upload-panel-header {
+  padding:14px 18px;
+  border-bottom:1px solid #f0f2f7;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.panel-title { font-size:13px; font-weight:700; color:#1a1a2e; }
+.panel-count { font-size:11px; color:#aaa; }
+
+.files-list { padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+
+.file-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px; background:#f8f9fc;
+  border:1.5px solid #e8ecf3; border-radius:11px;
+}
+.file-color {
+  width:8px; height:36px; border-radius:4px; flex-shrink:0;
+}
+.file-info { flex:1; min-width:0; }
+.file-name { font-size:12px; font-weight:600; color:#1a1a2e; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.file-meta { font-size:10px; color:#aaa; margin-top:2px; }
+.file-label {
+  font-size:10px; font-weight:700; padding:3px 7px;
+  border-radius:6px; white-space:nowrap;
+}
+.file-remove { color:#ddd; font-size:16px; cursor:pointer; padding:0 4px; }
+.file-remove:hover { color:#f87171; }
+
+.add-file-btn {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 14px; margin:0 14px 14px;
+  background:#fafbff; border:1.5px dashed #c7d2fe;
+  border-radius:11px; color:#6c47ff; font-size:12px; font-weight:600;
+  cursor:pointer; justify-content:center;
+}
+
+/* Common key selector */
+.key-section {
+  background:#fff; border:1.5px solid #e8ecf3;
+  border-radius:16px; padding:18px 20px; margin-bottom:20px;
+}
+.key-title { font-size:13px; font-weight:700; color:#1a1a2e; margin-bottom:4px; }
+.key-desc { font-size:12px; color:#aaa; margin-bottom:14px; }
+.key-options { display:flex; gap:10px; flex-wrap:wrap; }
+.key-chip {
+  padding:7px 14px; border-radius:9px; font-size:12px; font-weight:600;
+  border:1.5px solid #e8ecf3; color:#555; cursor:pointer; background:#f8f9fc;
+  display:flex; align-items:center; gap:6px;
+}
+.key-chip.selected {
+  background:#f0edff; border-color:#a78bfa; color:#6c47ff;
+}
+.key-chip .chip-icon { font-size:14px; }
+.key-chip .chip-files { font-size:10px; color:#aaa; }
+.key-chip.selected .chip-files { color:#9f7aea; }
+
+/* Column builder */
+.builder-section {
+  background:#fff; border:1.5px solid #e8ecf3;
+  border-radius:16px; overflow:hidden; margin-bottom:20px;
+}
+.builder-header {
+  padding:16px 20px; border-bottom:1px solid #f0f2f7;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.builder-title { font-size:13px; font-weight:700; color:#1a1a2e; }
+.builder-subtitle { font-size:11px; color:#aaa; }
+.builder-actions { display:flex; gap:8px; }
+.btn-sm {
+  padding:6px 12px; border-radius:8px; font-size:11px;
+  font-weight:600; cursor:pointer; border:none;
+}
+.btn-outline { background:#f0edff; color:#6c47ff; border:1.5px solid #c4b5fd; }
+.btn-primary { background:linear-gradient(135deg,#6c47ff,#a855f7); color:#fff; }
+
+.builder-grid {
+  display:grid; grid-template-columns:repeat(5, 1fr);
+  gap:0; border-top:1px solid #f0f2f7;
+}
+.file-column {
+  border-right:1px solid #f0f2f7; padding:0;
+}
+.file-column:last-child { border-right:none; }
+.col-header {
+  padding:12px 14px; border-bottom:1px solid #f0f2f7;
+  display:flex; align-items:center; gap:8px;
+}
+.col-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.col-name { font-size:12px; font-weight:700; color:#1a1a2e; }
+.col-rows { font-size:10px; color:#aaa; }
+.col-columns { padding:8px; display:flex; flex-direction:column; gap:5px; }
+.col-item {
+  display:flex; align-items:center; gap:7px;
+  padding:7px 9px; border-radius:9px;
+  font-size:11px; color:#555; cursor:pointer;
+  border:1.5px solid transparent;
+}
+.col-item:hover { background:#f8f9fc; border-color:#e8ecf3; }
+.col-item.selected { background:#f0edff; border-color:#c4b5fd; color:#6c47ff; }
+.col-item.key-col { background:#fef9c3; border-color:#fde047; color:#854d0e; }
+.col-checkbox {
+  width:14px; height:14px; border-radius:4px;
+  border:1.5px solid #ddd; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:9px;
+}
+.col-item.selected .col-checkbox { background:#6c47ff; border-color:#6c47ff; color:#fff; }
+.col-item.key-col .col-checkbox { background:#ca8a04; border-color:#ca8a04; color:#fff; }
+
+/* Output preview */
+.output-section {
+  background:#fff; border:1.5px solid #e8ecf3;
+  border-radius:16px; overflow:hidden; margin-bottom:20px;
+}
+.output-header {
+  padding:14px 20px; border-bottom:1px solid #f0f2f7;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.output-title { font-size:13px; font-weight:700; color:#1a1a2e; }
+.output-cols-count {
+  font-size:11px; background:#f0edff; color:#6c47ff;
+  padding:3px 10px; border-radius:20px; font-weight:600;
+}
+.output-table { width:100%; border-collapse:collapse; font-size:11px; }
+.output-table th {
+  padding:9px 14px; background:#f8f9fc;
+  border-bottom:1.5px solid #e8ecf3; text-align:left;
+  color:#555; font-weight:700; white-space:nowrap;
+}
+.output-table th .src-badge {
+  display:inline-block; font-size:9px; padding:2px 6px;
+  border-radius:5px; margin-left:5px; font-weight:600;
+}
+.output-table td {
+  padding:8px 14px; border-bottom:1px solid #f4f6fb;
+  color:#555;
+}
+.output-table tr:last-child td { border-bottom:none; }
+.output-table tr:hover td { background:#fafbff; }
+
+/* Bottom CTA */
+.cta-bar {
+  display:flex; align-items:center; justify-content:space-between;
+  background:#fff; border:1.5px solid #e8ecf3;
+  border-radius:14px; padding:16px 20px;
+}
+.cta-info { }
+.cta-info .cta-label { font-size:12px; color:#aaa; }
+.cta-info .cta-val { font-size:14px; font-weight:700; color:#1a1a2e; margin-top:2px; }
+.cta-btn {
+  padding:12px 28px; border-radius:11px; font-size:14px;
+  font-weight:700; cursor:pointer; border:none;
+  background:linear-gradient(135deg,#6c47ff,#a855f7); color:#fff;
+  box-shadow:0 4px 14px rgba(108,71,255,0.35);
+  display:flex; align-items:center; gap:8px;
+}
+
+/* Colors per file */
+.c1{background:#6c47ff;} .c2{background:#16a34a;} .c3{background:#ea580c;}
+.c4{background:#0891b2;} .c5{background:#db2777;}
+.l1{background:#ede9fe;color:#6c47ff;}
+.l2{background:#dcfce7;color:#16a34a;}
+.l3{background:#fff7ed;color:#ea580c;}
+.l4{background:#e0f7fa;color:#0891b2;}
+.l5{background:#fce7f3;color:#db2777;}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="section-badge">Section 2 of 3</div>
+  <h1>Enhanced Excel Merge Tool</h1>
+  <p>Up to 5 files · Pick columns from any file · Smart common-column detection · Custom output</p>
+</div>
+
+<div class="browser">
+  <div class="browser-bar">
+    <div class="browser-dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+    <div class="browser-url">localhost:5000/excel_tool — Excel Merge</div>
+  </div>
+
+  <!-- NAV -->
+  <div class="app-nav">
+    <div class="app-logo">
+      <div class="logo-mark">⚡</div>
+      tux-talk
+    </div>
+    <div class="breadcrumb">
+      <span>Tools</span><span class="sep">›</span>
+      <span class="current">📊 Excel Merge</span>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- STEP INDICATOR -->
+    <div class="steps">
+      <div class="step done">
+        <div class="step-num">✓</div>
+        <div class="step-label">Upload Files</div>
+      </div>
+      <div class="step-line done"></div>
+      <div class="step active">
+        <div class="step-num">2</div>
+        <div class="step-label">Pick Columns</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step pending">
+        <div class="step-num">3</div>
+        <div class="step-label">Download Result</div>
+      </div>
+    </div>
+
+    <!-- FILES + UPLOAD -->
+    <div class="upload-section">
+      <!-- Uploaded Files -->
+      <div class="upload-panel">
+        <div class="upload-panel-header">
+          <div class="panel-title">Uploaded Files</div>
+          <div class="panel-count">3 / 5 files</div>
+        </div>
+        <div class="files-list">
+          <div class="file-item">
+            <div class="file-color c1"></div>
+            <div class="file-info">
+              <div class="file-name">sales_q1.xlsx</div>
+              <div class="file-meta">1,240 rows · 8 columns · File A</div>
+            </div>
+            <div class="file-label l1">File A</div>
+            <div class="file-remove">×</div>
+          </div>
+          <div class="file-item">
+            <div class="file-color c2"></div>
+            <div class="file-info">
+              <div class="file-name">customers_2024.xlsx</div>
+              <div class="file-meta">890 rows · 12 columns · File B</div>
+            </div>
+            <div class="file-label l2">File B</div>
+            <div class="file-remove">×</div>
+          </div>
+          <div class="file-item">
+            <div class="file-color c3"></div>
+            <div class="file-info">
+              <div class="file-name">products_catalog.xlsx</div>
+              <div class="file-meta">450 rows · 6 columns · File C</div>
+            </div>
+            <div class="file-label l3">File C</div>
+            <div class="file-remove">×</div>
+          </div>
+        </div>
+        <div class="add-file-btn">＋ Add another file (2 remaining)</div>
+      </div>
+
+      <!-- Common Key Column -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="key-section">
+          <div class="key-title">🔑 Common Key Column</div>
+          <div class="key-desc">The column used to match rows across files. Select which column to join on.</div>
+          <div class="key-options">
+            <div class="key-chip selected">
+              <span class="chip-icon">🔑</span>
+              Customer ID
+              <span class="chip-files">A, B, C</span>
+            </div>
+            <div class="key-chip">
+              <span class="chip-icon">📋</span>
+              Product Code
+              <span class="chip-files">A, C</span>
+            </div>
+            <div class="key-chip">
+              <span class="chip-icon">📋</span>
+              Order No
+              <span class="chip-files">A, B</span>
+            </div>
+          </div>
+        </div>
+        <div style="background:#fff;border:1.5px solid #e8ecf3;border-radius:14px;padding:16px 18px;">
+          <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:10px;">Join Type</div>
+          <div style="display:flex;gap:8px;">
+            <div style="padding:7px 14px;border-radius:9px;background:#f0edff;border:1.5px solid #a78bfa;color:#6c47ff;font-size:12px;font-weight:600;cursor:pointer;">Left Join</div>
+            <div style="padding:7px 14px;border-radius:9px;background:#f8f9fc;border:1.5px solid #e8ecf3;color:#555;font-size:12px;font-weight:600;cursor:pointer;">Inner Join</div>
+            <div style="padding:7px 14px;border-radius:9px;background:#f8f9fc;border:1.5px solid #e8ecf3;color:#555;font-size:12px;font-weight:600;cursor:pointer;">Outer Join</div>
+          </div>
+          <div style="font-size:11px;color:#aaa;margin-top:8px;">Left Join: keep all rows from File A, fill blanks where others don't match.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMN BUILDER -->
+    <div class="builder-section">
+      <div class="builder-header">
+        <div>
+          <div class="builder-title">Column Picker — Select columns to include in output</div>
+          <div class="builder-subtitle">Click to select / deselect. Yellow = join key (always included).</div>
+        </div>
+        <div class="builder-actions">
+          <button class="btn-sm btn-outline">Select All</button>
+          <button class="btn-sm btn-outline">Clear All</button>
+        </div>
+      </div>
+      <div class="builder-grid">
+        <!-- File A -->
+        <div class="file-column">
+          <div class="col-header">
+            <div class="col-dot c1"></div>
+            <div>
+              <div class="col-name">File A</div>
+              <div class="col-rows">sales_q1.xlsx</div>
+            </div>
+          </div>
+          <div class="col-columns">
+            <div class="col-item key-col"><div class="col-checkbox">🔑</div>Customer ID</div>
+            <div class="col-item selected"><div class="col-checkbox">✓</div>Sales Amount</div>
+            <div class="col-item selected"><div class="col-checkbox">✓</div>Quarter</div>
+            <div class="col-item selected"><div class="col-checkbox">✓</div>Region</div>
+            <div class="col-item"><div class="col-checkbox"></div>Rep Name</div>
+            <div class="col-item"><div class="col-checkbox"></div>Commission</div>
+            <div class="col-item"><div class="col-checkbox"></div>Notes</div>
+            <div class="col-item"><div class="col-checkbox"></div>Date</div>
+          </div>
+        </div>
+        <!-- File B -->
+        <div class="file-column">
+          <div class="col-header">
+            <div class="col-dot c2"></div>
+            <div>
+              <div class="col-name">File B</div>
+              <div class="col-rows">customers_2024.xlsx</div>
+            </div>
+          </div>
+          <div class="col-columns">
+            <div class="col-item key-col"><div class="col-checkbox">🔑</div>Customer ID</div>
+            <div class="col-item selected"><div class="col-checkbox">✓</div>Customer Name</div>
+            <div class="col-item selected"><div class="col-checkbox">✓</div>Email</div>
+            <div class="col-item selected"><div class="col-checkbox">✓</div>Country</div>
+            <div class="col-item"><div class="col-checkbox"></div>Phone</div>
+            <div class="col-item"><div class="col-checkbox"></div>Signup Date</div>
+            <div class="col-item"><div class="col-checkbox"></div>Plan Type</div>
+            <div class="col-item"><div class="col-checkbox"></div>Account Mgr</div>
+            <div class="col-item"><div class="col-checkbox"></div>Segment</div>
+            <div class="col-item"><div class="col-checkbox"></div>Industry</div>
+            <div class="col-item"><div class="col-checkbox"></div>ARR</div>
+            <div class="col-item"><div class="col-checkbox"></div>Status</div>
+          </div>
+        </div>
+        <!-- File C -->
+        <div class="file-column">
+          <div class="col-header">
+            <div class="col-dot c3"></div>
+            <div>
+              <div class="col-name">File C</div>
+              <div class="col-rows">products_catalog.xlsx</div>
+            </div>
+          </div>
+          <div class="col-columns">
+            <div class="col-item key-col"><div class="col-checkbox">🔑</div>Product Code</div>
+            <div class="col-item selected"><div class="col-checkbox">✓</div>Product Name</div>
+            <div class="col-item selected"><div class="col-checkbox">✓</div>Category</div>
+            <div class="col-item"><div class="col-checkbox"></div>Unit Price</div>
+            <div class="col-item"><div class="col-checkbox"></div>Stock</div>
+            <div class="col-item"><div class="col-checkbox"></div>SKU</div>
+          </div>
+        </div>
+        <!-- File D placeholder -->
+        <div class="file-column" style="background:#fafbff;opacity:0.6;">
+          <div class="col-header" style="border-style:dashed;">
+            <div class="col-dot" style="background:#ddd;"></div>
+            <div>
+              <div class="col-name" style="color:#aaa;">File D</div>
+              <div class="col-rows">not uploaded</div>
+            </div>
+          </div>
+          <div style="padding:20px 14px;text-align:center;color:#ccc;font-size:12px;">
+            Add a 4th file above
+          </div>
+        </div>
+        <!-- File E placeholder -->
+        <div class="file-column" style="background:#fafbff;opacity:0.6;">
+          <div class="col-header" style="border-style:dashed;">
+            <div class="col-dot" style="background:#ddd;"></div>
+            <div>
+              <div class="col-name" style="color:#aaa;">File E</div>
+              <div class="col-rows">not uploaded</div>
+            </div>
+          </div>
+          <div style="padding:20px 14px;text-align:center;color:#ccc;font-size:12px;">
+            Add a 5th file above
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUT PREVIEW -->
+    <div class="output-section">
+      <div class="output-header">
+        <div>
+          <div class="output-title">Output Preview — first 3 rows</div>
+          <div style="font-size:11px;color:#aaa;margin-top:2px;">8 columns selected across 3 files · merged on Customer ID</div>
+        </div>
+        <div class="output-cols-count">8 columns</div>
+      </div>
+      <table class="output-table">
+        <thead>
+          <tr>
+            <th>Customer ID <span class="src-badge l1">🔑</span></th>
+            <th>Sales Amount <span class="src-badge l1">A</span></th>
+            <th>Quarter <span class="src-badge l1">A</span></th>
+            <th>Region <span class="src-badge l1">A</span></th>
+            <th>Customer Name <span class="src-badge l2">B</span></th>
+            <th>Email <span class="src-badge l2">B</span></th>
+            <th>Country <span class="src-badge l2">B</span></th>
+            <th>Product Name <span class="src-badge l3">C</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CUST-001</td><td>$12,400</td><td>Q1</td><td>North</td>
+            <td>Alice Johnson</td><td>alice@corp.com</td><td>USA</td><td>Enterprise Suite</td>
+          </tr>
+          <tr>
+            <td>CUST-002</td><td>$8,900</td><td>Q1</td><td>South</td>
+            <td>Bob Martinez</td><td>bob@startup.io</td><td>Canada</td><td>—</td>
+          </tr>
+          <tr>
+            <td>CUST-003</td><td>$21,000</td><td>Q1</td><td>West</td>
+            <td>Carol Lee</td><td>carol@co.uk</td><td>UK</td><td>Pro Plan</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-bar">
+      <div class="cta-info">
+        <div class="cta-label">Output will contain</div>
+        <div class="cta-val">~1,240 rows · 8 columns · from 3 files · joined on Customer ID</div>
+      </div>
+      <button class="cta-btn">⬇ Build &amp; Download Excel</button>
+    </div>
+
+  </div>
+</div>
+
+<div style="text-align:center;color:#888;font-size:13px;">
+  <strong>Does this Excel Merge interface look right?</strong><br>
+  Reply in the chat — then I'll show Section 3: the Studio Color Correction tool.
+</div>
+
+</body>
+</html>

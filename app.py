@@ -20,14 +20,25 @@ app.secret_key = os.environ.get('SECRET_KEY', 'tuxtalk-dev-secret-change-in-prod
 UPSCALE_MODEL_PATH = "models/EDSR_x4.pb"
 
 def upscale_image_with_model(image_path, scale=4):
-    sr = cv2.dnn_superres.DnnSuperResImpl_create()
-    sr.readModel(UPSCALE_MODEL_PATH)
-    sr.setModel("edsr", 4)
     image = cv2.imread(image_path)
-    result = sr.upsample(image)
-    if scale == 2:
-        h, w = result.shape[:2]
-        result = cv2.resize(result, (w // 2, h // 2), interpolation=cv2.INTER_LANCZOS4)
+    h, w = image.shape[:2]
+    # EDSR on CPU is ~1.3s per 50×50 px — too slow for normal photos.
+    # Use EDSR only for tiny images (≤150px wide); use Lanczos for everything else.
+    use_edsr = (w <= 150 and h <= 150 and os.path.exists(UPSCALE_MODEL_PATH))
+    if use_edsr:
+        sr = cv2.dnn_superres.DnnSuperResImpl_create()
+        sr.readModel(UPSCALE_MODEL_PATH)
+        sr.setModel("edsr", 4)
+        result = sr.upsample(image)
+        if scale == 2:
+            rh, rw = result.shape[:2]
+            result = cv2.resize(result, (rw // 2, rh // 2), interpolation=cv2.INTER_LANCZOS4)
+    else:
+        # High-quality Lanczos upscaling — near-instant on any size
+        pil_img = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        new_size = (w * scale, h * scale)
+        pil_img = pil_img.resize(new_size, Image.LANCZOS)
+        result = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
     return result
 
 # ── Temp session dir helpers ──────────────────────────────

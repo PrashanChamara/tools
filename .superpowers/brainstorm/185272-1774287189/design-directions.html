@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tux-talk UI Redesign — Design Directions</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f13;
+    color: #e8e8f0;
+    padding: 32px 24px 60px;
+    min-height: 100vh;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .page-header p {
+    color: #888;
+    font-size: 15px;
+    margin-top: 8px;
+  }
+
+  .directions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  .direction-card {
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid transparent;
+  }
+  .direction-card:hover {
+    transform: translateY(-4px);
+  }
+  .direction-card.selected {
+    border-color: #7c6fff;
+    box-shadow: 0 0 0 3px rgba(124, 111, 255, 0.3);
+  }
+
+  /* ============== OPTION A: Dark Pro ============== */
+  .dir-a { background: #12131a; }
+  .dir-a .mockup-screen {
+    background: #12131a;
+    padding: 0;
+    height: 380px;
+    overflow: hidden;
+    position: relative;
+  }
+  .dir-a .nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .dir-a .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    color: #00e5c3;
+  }
+  .dir-a .nav-logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, #00e5c3, #0076ff);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .dir-a .nav-links { display: flex; gap: 20px; }
+  .dir-a .nav-links span {
+    font-size: 12px; color: #888;
+    cursor: pointer;
+  }
+  .dir-a .nav-links span.active { color: #00e5c3; }
+  .dir-a .hero {
+    padding: 24px 20px 16px;
+    text-align: center;
+  }
+  .dir-a .hero h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .dir-a .hero p { font-size: 11px; color: #666; }
+  .dir-a .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 0 16px;
+  }
+  .dir-a .tool-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .dir-a .tool-card:hover {
+    background: rgba(0,229,195,0.08);
+    border-color: rgba(0,229,195,0.3);
+  }
+  .dir-a .tool-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    margin: 0 auto 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .dir-a .tool-name { font-size: 10px; color: #bbb; font-weight: 500; }
+  .dir-a .badge {
+    display: inline-block;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+    background: rgba(0,229,195,0.15);
+    color: #00e5c3;
+  }
+  .dir-a .sidebar-overlay {
+    position: absolute;
+    left: 0; top: 0;
+    width: 180px; height: 100%;
+    background: rgba(10,10,16,0.95);
+    border-right: 1px solid rgba(255,255,255,0.07);
+    padding: 16px 12px;
+    display: none;
+  }
+
+  /* ============== OPTION B: Clean SaaS ============== */
+  .dir-b { background: #ffffff; }
+  .dir-b .mockup-screen {
+    background: #f4f6fb;
+    height: 380px;
+    overflow: hidden;
+  }
+  .dir-b .nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: #fff;
+    border-bottom: 1px solid #e8ecf3;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .dir-b .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    color: #1a1a2e;
+  }
+  .dir-b .nav-logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, #6c47ff, #a855f7);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    color: #fff;
+  }
+  .dir-b .nav-links { display: flex; gap: 20px; }
+  .dir-b .nav-links span { font-size: 12px; color: #666; }
+  .dir-b .nav-links span.active { color: #6c47ff; font-weight: 600; }
+  .dir-b .search-bar {
+    margin: 20px 20px 16px;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 8px 14px;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .dir-b .search-bar span { font-size: 12px; color: #999; }
+  .dir-b .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 0 16px;
+  }
+  .dir-b .tool-card {
+    background: #fff;
+    border: 1.5px solid #e8ecf3;
+    border-radius: 14px;
+    padding: 16px 12px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .dir-b .tool-icon {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    margin: 0 auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .dir-b .tool-name { font-size: 11px; color: #333; font-weight: 600; }
+  .dir-b .tool-desc { font-size: 9px; color: #999; margin-top: 3px; }
+  .dir-b .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #aaa;
+    padding: 0 20px;
+    margin-bottom: 10px;
+  }
+
+  /* ============== OPTION C: Gradient Dark ============== */
+  .dir-c { background: #0d0d1a; }
+  .dir-c .mockup-screen {
+    background: #0d0d1a;
+    height: 380px;
+    overflow: hidden;
+    position: relative;
+  }
+  .dir-c .bg-glow {
+    position: absolute;
+    top: -60px; left: 50%;
+    transform: translateX(-50%);
+    width: 300px; height: 200px;
+    background: radial-gradient(ellipse, rgba(109,40,217,0.3) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .dir-c .nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+  }
+  .dir-c .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    background: linear-gradient(90deg, #a78bfa, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .dir-c .nav-logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, #7c3aed, #db2777);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .dir-c .nav-links { display: flex; gap: 20px; }
+  .dir-c .nav-links span { font-size: 12px; color: #666; }
+  .dir-c .nav-links span.active {
+    background: linear-gradient(90deg, #a78bfa, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .dir-c .hero {
+    padding: 22px 20px 14px;
+    text-align: center;
+    position: relative;
+  }
+  .dir-c .hero h2 {
+    font-size: 18px;
+    font-weight: 800;
+    background: linear-gradient(90deg, #a78bfa, #f472b6, #fb923c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 5px;
+  }
+  .dir-c .hero p { font-size: 10px; color: #555; }
+  .dir-c .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 0 16px;
+    position: relative;
+  }
+  .dir-c .tool-card {
+    background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 14px;
+    padding: 14px 10px;
+    text-align: center;
+    backdrop-filter: blur(8px);
+  }
+  .dir-c .tool-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    margin: 0 auto 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .dir-c .tool-name { font-size: 10px; color: #ccc; font-weight: 600; }
+  .dir-c .tool-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(219,39,119,0.1));
+  }
+  .dir-c .tool-card:hover .tool-glow { opacity: 1; }
+
+  /* Card metadata */
+  .card-meta {
+    padding: 18px 20px;
+    background: inherit;
+  }
+  .dir-a .card-meta { background: #12131a; border-top: 1px solid rgba(255,255,255,0.07); }
+  .dir-b .card-meta { background: #fff; border-top: 1.5px solid #e8ecf3; }
+  .dir-c .card-meta { background: #0d0d1a; border-top: 1px solid rgba(255,255,255,0.07); }
+
+  .card-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .dir-a .card-label { color: #00e5c3; }
+  .dir-b .card-label { color: #6c47ff; }
+  .dir-c .card-label {
+    background: linear-gradient(90deg, #a78bfa, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .card-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .dir-a .card-title { color: #fff; }
+  .dir-b .card-title { color: #1a1a2e; }
+  .dir-c .card-title { color: #f1f1ff; }
+  .card-desc {
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .dir-a .card-desc { color: #888; }
+  .dir-b .card-desc { color: #666; }
+  .dir-c .card-desc { color: #666; }
+  .card-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .dir-a .tag { background: rgba(0,229,195,0.12); color: #00e5c3; }
+  .dir-b .tag { background: rgba(108,71,255,0.1); color: #6c47ff; }
+  .dir-c .tag { background: rgba(167,139,250,0.15); color: #a78bfa; }
+  .select-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .dir-a .select-btn {
+    background: rgba(0,229,195,0.15);
+    color: #00e5c3;
+    border: 1.5px solid rgba(0,229,195,0.3);
+  }
+  .dir-a .select-btn:hover {
+    background: rgba(0,229,195,0.25);
+  }
+  .dir-b .select-btn {
+    background: linear-gradient(135deg, #6c47ff, #a855f7);
+    color: #fff;
+  }
+  .dir-b .select-btn:hover { opacity: 0.9; }
+  .dir-c .select-btn {
+    background: linear-gradient(135deg, #7c3aed, #db2777);
+    color: #fff;
+  }
+  .dir-c .select-btn:hover { opacity: 0.9; }
+
+  /* Selected state overlay */
+  .selected-overlay {
+    display: none;
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 28px; height: 28px;
+    background: #7c6fff;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: white;
+    font-weight: bold;
+    z-index: 10;
+  }
+  .direction-card.selected .selected-overlay { display: flex; }
+  .direction-card { position: relative; }
+
+  .page-footer {
+    text-align: center;
+    margin-top: 40px;
+    font-size: 13px;
+    color: #555;
+  }
+  .page-footer strong { color: #888; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>tux-talk UI Redesign — Choose a Direction</h1>
+  <p>Click a design to select it. These are live-rendered mockups of the new homepage.</p>
+</div>
+
+<div class="directions-grid">
+
+  <!-- ===== OPTION A: Dark Professional ===== -->
+  <div class="direction-card dir-a" onclick="selectCard(this, 'a')">
+    <div class="selected-overlay">✓</div>
+    <div class="mockup-screen">
+      <div class="nav-bar">
+        <div class="nav-logo">
+          <div class="nav-logo-icon">⚡</div>
+          tux-talk
+        </div>
+        <div class="nav-links">
+          <span class="active">Tools</span>
+          <span>History</span>
+          <span>Settings</span>
+        </div>
+      </div>
+      <div class="dir-a hero">
+        <h2>Your AI Toolkit</h2>
+        <p>7 professional tools for everyday work</p>
+      </div>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-icon" style="background:rgba(0,229,195,0.12);">🎙️</div>
+          <div class="tool-name">Speech to Text</div>
+          <div class="badge">AI</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:rgba(99,102,241,0.15);">🖼️</div>
+          <div class="tool-name">Remove BG</div>
+          <div class="badge">AI</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:rgba(249,115,22,0.12);">✏️</div>
+          <div class="tool-name">Sketch</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:rgba(34,197,94,0.12);">📊</div>
+          <div class="tool-name">Excel Merge</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:rgba(239,68,68,0.12);">📄</div>
+          <div class="tool-name">PDF Tools</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:rgba(234,179,8,0.12);">🎨</div>
+          <div class="tool-name">Color Fix</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:rgba(168,85,247,0.12);">🔍</div>
+          <div class="tool-name">Upscale</div>
+          <div class="badge">4x AI</div>
+        </div>
+        <div class="tool-card" style="background:rgba(0,229,195,0.06);border-color:rgba(0,229,195,0.2);">
+          <div class="tool-icon" style="background:rgba(0,229,195,0.12);">＋</div>
+          <div class="tool-name" style="color:#00e5c3;">New Tool</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-meta">
+      <div class="card-label">Option A</div>
+      <div class="card-title">Dark Professional</div>
+      <div class="card-desc">Teal accents on deep dark background. Feels like a serious dev/pro tool. Minimal, focused, fast.</div>
+      <div class="card-tags">
+        <span class="tag">Dark mode</span>
+        <span class="tag">Developer-feel</span>
+        <span class="tag">Teal accent</span>
+      </div>
+      <button class="select-btn" onclick="event.stopPropagation(); selectCard(this.closest('.direction-card'), 'a')">
+        Select This Direction
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== OPTION B: Clean SaaS ===== -->
+  <div class="direction-card dir-b" onclick="selectCard(this, 'b')">
+    <div class="selected-overlay">✓</div>
+    <div class="mockup-screen">
+      <div class="nav-bar">
+        <div class="nav-logo">
+          <div class="nav-logo-icon">⚡</div>
+          <span style="color:#1a1a2e;">tux-talk</span>
+        </div>
+        <div class="nav-links">
+          <span class="active">Tools</span>
+          <span>Recent</span>
+          <span>Settings</span>
+        </div>
+      </div>
+      <div class="search-bar">
+        <span>🔍</span>
+        <span>Search tools...</span>
+      </div>
+      <div class="section-label">All Tools</div>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-icon" style="background:#ede9fe;">🎙️</div>
+          <div class="tool-name">Speech to Text</div>
+          <div class="tool-desc">Real-time transcription</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:#fce7f3;">🖼️</div>
+          <div class="tool-name">Remove BG</div>
+          <div class="tool-desc">AI background remover</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:#fff7ed;">✏️</div>
+          <div class="tool-name">Sketch</div>
+          <div class="tool-desc">Photo to pencil art</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:#dcfce7;">📊</div>
+          <div class="tool-name">Excel Merge</div>
+          <div class="tool-desc">Combine spreadsheets</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:#fee2e2;">📄</div>
+          <div class="tool-name">PDF Tools</div>
+          <div class="tool-desc">Merge, split, convert</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:#fef9c3;">🎨</div>
+          <div class="tool-name">Color Fix</div>
+          <div class="tool-desc">Smart color correction</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon" style="background:#ede9fe;">🔍</div>
+          <div class="tool-name">Upscale 4x</div>
+          <div class="tool-desc">AI super resolution</div>
+        </div>
+        <div class="tool-card" style="border-style:dashed;border-color:#c7d2fe;">
+          <div class="tool-icon" style="background:#f0f9ff;">＋</div>
+          <div class="tool-name" style="color:#6c47ff;">Coming Soon</div>
+          <div class="tool-desc">More tools on the way</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-meta" style="background:#fff;">
+      <div class="card-label">Option B</div>
+      <div class="card-title" style="color:#1a1a2e;">Clean SaaS</div>
+      <div class="card-desc" style="color:#666;">White light background with purple accents. Looks like Notion/Linear. Great for everyday use, easy on the eyes.</div>
+      <div class="card-tags">
+        <span class="tag">Light mode</span>
+        <span class="tag">SaaS style</span>
+        <span class="tag">Purple accent</span>
+      </div>
+      <button class="select-btn" onclick="event.stopPropagation(); selectCard(this.closest('.direction-card'), 'b')">
+        Select This Direction
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== OPTION C: Gradient Dark ===== -->
+  <div class="direction-card dir-c" onclick="selectCard(this, 'c')">
+    <div class="selected-overlay">✓</div>
+    <div class="mockup-screen">
+      <div class="bg-glow"></div>
+      <div class="nav-bar">
+        <div class="nav-logo">
+          <div class="nav-logo-icon">⚡</div>
+          tux-talk
+        </div>
+        <div class="nav-links">
+          <span class="active">Tools</span>
+          <span>History</span>
+          <span>Pro</span>
+        </div>
+      </div>
+      <div class="dir-c hero">
+        <h2>Supercharge Your Workflow</h2>
+        <p>AI-powered tools for creators & professionals</p>
+      </div>
+      <div class="tools-grid">
+        <div class="tool-card" style="position:relative;overflow:hidden;">
+          <div class="tool-glow"></div>
+          <div class="tool-icon" style="background:linear-gradient(135deg,#7c3aed33,#7c3aed22);">🎙️</div>
+          <div class="tool-name">Speech to Text</div>
+        </div>
+        <div class="tool-card" style="position:relative;overflow:hidden;">
+          <div class="tool-glow" style="background:linear-gradient(135deg,rgba(236,72,153,0.15),rgba(239,68,68,0.1));"></div>
+          <div class="tool-icon" style="background:linear-gradient(135deg,#ec489922,#ef444422);">🖼️</div>
+          <div class="tool-name">Remove BG</div>
+        </div>
+        <div class="tool-card" style="position:relative;overflow:hidden;">
+          <div class="tool-glow" style="background:linear-gradient(135deg,rgba(249,115,22,0.15),rgba(234,179,8,0.1));"></div>
+          <div class="tool-icon" style="background:linear-gradient(135deg,#f9731622,#eab30822);">✏️</div>
+          <div class="tool-name">Sketch</div>
+        </div>
+        <div class="tool-card" style="position:relative;overflow:hidden;">
+          <div class="tool-glow" style="background:linear-gradient(135deg,rgba(34,197,94,0.15),rgba(16,185,129,0.1));"></div>
+          <div class="tool-icon" style="background:linear-gradient(135deg,#22c55e22,#10b98122);">📊</div>
+          <div class="tool-name">Excel Merge</div>
+        </div>
+        <div class="tool-card" style="position:relative;overflow:hidden;">
+          <div class="tool-glow" style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(220,38,38,0.1));"></div>
+          <div class="tool-icon" style="background:linear-gradient(135deg,#ef444422,#dc262822);">📄</div>
+          <div class="tool-name">PDF Tools</div>
+        </div>
+        <div class="tool-card" style="position:relative;overflow:hidden;">
+          <div class="tool-glow" style="background:linear-gradient(135deg,rgba(234,179,8,0.15),rgba(249,115,22,0.1));"></div>
+          <div class="tool-icon" style="background:linear-gradient(135deg,#eab30822,#f9731622);">🎨</div>
+          <div class="tool-name">Color Fix</div>
+        </div>
+        <div class="tool-card" style="position:relative;overflow:hidden;">
+          <div class="tool-glow" style="background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.1));"></div>
+          <div class="tool-icon" style="background:linear-gradient(135deg,#6366f122,#8b5cf622);">🔍</div>
+          <div class="tool-name">Upscale 4x</div>
+        </div>
+        <div class="tool-card" style="position:relative;overflow:hidden;border-style:dashed;border-color:rgba(167,139,250,0.3);">
+          <div class="tool-icon" style="background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(244,114,182,0.1));">＋</div>
+          <div class="tool-name" style="background:linear-gradient(90deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Add Tool</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-meta">
+      <div class="card-label">Option C</div>
+      <div class="card-title">Gradient Dark</div>
+      <div class="card-desc">Purple-pink gradient accents on deep dark with glassmorphism. Premium creative tool aesthetic — vibrant and modern.</div>
+      <div class="card-tags">
+        <span class="tag">Dark mode</span>
+        <span class="tag">Glassmorphism</span>
+        <span class="tag">Gradient accent</span>
+      </div>
+      <button class="select-btn" onclick="event.stopPropagation(); selectCard(this.closest('.direction-card'), 'c')">
+        Select This Direction
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="page-footer">
+  <strong>Click a card or button to select your preferred direction.</strong><br>
+  You can also tell me in the chat if you want a mix of elements from multiple options.
+</div>
+
+<script>
+let selected = null;
+function selectCard(el, choice) {
+  document.querySelectorAll('.direction-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selected = choice;
+  // Record event
+  try {
+    fetch('/event', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({type:'click', choice, text: 'Option ' + choice.toUpperCase(), timestamp: Date.now()})
+    });
+  } catch(e) {}
+}
+</script>
+</body>
+</html>
